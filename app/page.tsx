@@ -24,7 +24,7 @@ export default function HomePage() {
           <Button component={Link} href="/login" variant="contained">
             로그인
           </Button>
-          <Button component={Link} href="/admin/map" variant="outlined">
+          <Button component={Link} href="/map" variant="outlined">
             지도 보기
           </Button>
         </Box>

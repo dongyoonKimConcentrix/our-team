@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Container from '@mui/material/Container';
@@ -10,16 +10,34 @@ import Grid from '@mui/material/Grid2';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import Paper from '@mui/material/Paper';
+import { createClient } from '@/lib/supabase/client';
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
-  const [email, setEmail] = useState('');
+  const searchParams = useSearchParams();
+  const next = searchParams.get('next') || '/home';
+  const [id, setId] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Supabase auth 연동
-    router.push('/admin');
+    setError(null);
+    setLoading(true);
+    const email = id.includes('@') ? id : `${id.trim()}@team.local`;
+    try {
+      const supabase = createClient();
+      const { error: err } = await supabase.auth.signInWithPassword({ email, password });
+      if (err) throw err;
+      const path = next.startsWith('/') ? next : `/${next}`;
+      router.push(path);
+      router.refresh();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : '로그인에 실패했습니다.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -55,11 +73,10 @@ export default function LoginPage() {
                   <Grid size={12}>
                     <TextField
                       fullWidth
-                      label="이메일"
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      autoComplete="email"
+                      label="아이디"
+                      value={id}
+                      onChange={(e) => setId(e.target.value)}
+                      autoComplete="username"
                       required
                     />
                   </Grid>
@@ -74,6 +91,11 @@ export default function LoginPage() {
                       required
                     />
                   </Grid>
+                  {error && (
+                  <Grid size={12}>
+                    <Typography variant="body2" color="error">{error}</Typography>
+                  </Grid>
+                )}
                   <Grid size={12}>
                     <Button
                       type="submit"
@@ -81,8 +103,9 @@ export default function LoginPage() {
                       variant="contained"
                       size="large"
                       sx={{ py: 1.5 }}
+                      disabled={loading}
                     >
-                      로그인
+                      {loading ? '로그인 중…' : '로그인'}
                     </Button>
                   </Grid>
                   <Grid size={12}>
@@ -99,5 +122,17 @@ export default function LoginPage() {
         </Grid>
       </Container>
     </Box>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'background.default' }}>
+        <Typography color="text.secondary">로딩 중...</Typography>
+      </Box>
+    }>
+      <LoginForm />
+    </Suspense>
   );
 }

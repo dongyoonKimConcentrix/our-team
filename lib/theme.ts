@@ -21,15 +21,13 @@ const getDesignTokens = (mode: PaletteMode) => ({
     mode,
     primary: BRAND.primary,
     secondary: BRAND.secondary,
-    ...(mode === 'dark' && {
-      background: {
-        default: '#0f172a',
-        paper: '#1e293b',
-      },
-    }),
+    background: {
+      default: mode === 'dark' ? '#0f172a' : '#f8fafc',
+      paper: mode === 'dark' ? '#1e293b' : '#ffffff',
+    },
   },
   typography: {
-    fontFamily: 'var(--font-noto-sans-kr), "Pretendard", "Noto Sans KR", -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
+    fontFamily: '"Pretendard", -apple-system, BlinkMacSystemFont, system-ui, "Apple SD Gothic Neo", sans-serif',
     h1: { fontWeight: 700 },
     h2: { fontWeight: 700 },
     h3: { fontWeight: 600 },
@@ -86,6 +84,21 @@ const getDesignTokens = (mode: PaletteMode) => ({
       styleOverrides: {
         root: {
           borderRadius: 12,
+          fontFamily: '"Pretendard", -apple-system, BlinkMacSystemFont, system-ui, "Apple SD Gothic Neo", sans-serif',
+        },
+        input: {
+          fontFamily: 'inherit',
+          '&::placeholder': {
+            fontFamily: 'inherit',
+            opacity: 0.7,
+          },
+        },
+      },
+    },
+    MuiInputLabel: {
+      styleOverrides: {
+        root: {
+          fontFamily: '"Pretendard", -apple-system, BlinkMacSystemFont, system-ui, "Apple SD Gothic Neo", sans-serif',
         },
       },
     },
