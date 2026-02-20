@@ -28,19 +28,24 @@ export async function GET(request: NextRequest) {
   type TeamRow = { id: string; name: string; age_range: string | null; skill_level: string | null; contacts: Array<{ type?: string; value?: string }> };
   const teamByMatch = new Map<string, TeamRow>();
   for (const row of matchTeams ?? []) {
-    const mid = (row as { match_id: string }).match_id;
-    const t = (row as { teams: TeamRow | null }).teams;
+    const r = row as unknown as { match_id: string; teams: TeamRow | TeamRow[] | null };
+    const mid = r.match_id;
+    const t = r.teams == null ? null : Array.isArray(r.teams) ? r.teams[0] ?? null : r.teams;
     if (mid && t) teamByMatch.set(mid, t);
   }
-  const list = (matches ?? []).map((m) => ({
+  const list = (matches ?? []).map((m) => {
+    const stadiums = m.stadiums as unknown as { name: string } | { name: string }[] | null;
+    const stadiumName = stadiums == null ? null : Array.isArray(stadiums) ? stadiums[0]?.name : stadiums.name;
+    return {
     id: m.id,
     match_date: m.match_date,
     stadium_id: m.stadium_id,
-    stadium_name: (m.stadiums as { name: string } | null)?.name ?? null,
+    stadium_name: stadiumName ?? null,
     our_team_attendance: m.our_team_attendance,
     created_at: m.created_at,
     team: m.id ? teamByMatch.get(m.id) ?? null : null,
-  }));
+  };
+  });
   return Response.json(list);
 }
 

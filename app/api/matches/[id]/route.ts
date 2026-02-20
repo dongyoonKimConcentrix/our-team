@@ -25,15 +25,19 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     .select('team_id, teams ( id, name, age_range, skill_level, contacts )')
     .eq('match_id', id)
     .limit(1);
-  const first = (matchTeams ?? [])[0] as {
+  type TeamRow = {
+    team_id: string;
     teams: { id: string; name: string; age_range: string | null; skill_level: string | null; contacts: Array<{ type?: string; value?: string }> } | null;
-  } | undefined;
+  };
+  const first = (matchTeams ?? [])[0] as unknown as TeamRow | undefined;
   const t = first?.teams;
+  const stadiums = match.stadiums as unknown as { name: string } | { name: string }[] | null;
+  const stadiumName = stadiums == null ? null : Array.isArray(stadiums) ? stadiums[0]?.name : stadiums.name;
   return Response.json({
     id: match.id,
     match_date: match.match_date,
     stadium_id: match.stadium_id,
-    stadium_name: (match.stadiums as { name: string } | null)?.name ?? null,
+    stadium_name: stadiumName ?? null,
     our_team_attendance: match.our_team_attendance,
     team_id: t?.id ?? null,
     team_name: t?.name ?? null,
