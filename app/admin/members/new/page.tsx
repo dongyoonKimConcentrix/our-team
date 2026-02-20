@@ -1,13 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import Box from '@mui/material/Box';
-import Button from '@mui/material/Button';
-import Container from '@mui/material/Container';
-import Grid from '@mui/material/Grid2';
-import Paper from '@mui/material/Paper';
-import TextField from '@mui/material/TextField';
-import Typography from '@mui/material/Typography';
 
 export default function CreateMemberPage() {
   const [id, setId] = useState('');
@@ -48,66 +41,67 @@ export default function CreateMemberPage() {
   };
 
   return (
-    <Container maxWidth="sm">
-      <Typography variant="h6" fontWeight={600} gutterBottom>
-        팀원 계정 생성
-      </Typography>
-      <Paper sx={{ p: 3, borderRadius: 2 }}>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          로그인 시 아이디와 비밀번호를 사용합니다.
-        </Typography>
-        <Box component="form" onSubmit={handleSubmit}>
-          <Grid container spacing={2}>
-            <Grid size={12}>
-              <TextField
-                fullWidth
-                size="small"
-                label="아이디"
+    <div className="max-w-md mx-auto">
+      <h1 className="text-2xl font-bold mb-1">팀원 계정 생성</h1>
+      <p className="text-base-content/70 text-sm mb-6">
+        로그인 시 아이디와 비밀번호를 사용합니다.
+      </p>
+
+      <div className="card bg-base-200 shadow-sm">
+        <div className="card-body">
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+            <div className="form-control">
+              <label className="label">
+                <span className="label-text">아이디</span>
+              </label>
+              <input
+                type="text"
+                className="input input-bordered w-full"
                 value={id}
                 onChange={(e) => setId(e.target.value)}
                 autoComplete="username"
                 placeholder="로그인에 사용할 아이디"
               />
-            </Grid>
-            <Grid size={12}>
-              <TextField
-                fullWidth
-                size="small"
-                label="비밀번호"
+            </div>
+            <div className="form-control">
+              <label className="label">
+                <span className="label-text">비밀번호</span>
+              </label>
+              <input
                 type="password"
+                className="input input-bordered w-full"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 autoComplete="new-password"
               />
-            </Grid>
-            <Grid size={12}>
-              <TextField
-                fullWidth
-                size="small"
-                label="이름"
+            </div>
+            <div className="form-control">
+              <label className="label">
+                <span className="label-text">이름</span>
+              </label>
+              <input
+                type="text"
+                className="input input-bordered w-full"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="표시 이름 (선택)"
               />
-            </Grid>
+            </div>
             {message && (
-              <Grid size={12}>
-                <Typography
-                  variant="body2"
-                  color={message.startsWith('계정') ? 'success.main' : 'error.main'}
-                >
-                  {message}
-                </Typography>
-              </Grid>
+              <p className={`text-sm ${message.startsWith('계정') ? 'text-success' : 'text-error'}`}>
+                {message}
+              </p>
             )}
-            <Grid size={12}>
-              <Button type="submit" variant="contained" disabled={loading}>
-                {loading ? '생성 중…' : '팀원 계정 생성'}
-              </Button>
-            </Grid>
-          </Grid>
-        </Box>
-      </Paper>
-    </Container>
+            <button
+              type="submit"
+              className="btn btn-primary"
+              disabled={loading}
+            >
+              {loading ? '생성 중…' : '팀원 계정 생성'}
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
   );
 }

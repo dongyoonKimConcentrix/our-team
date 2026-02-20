@@ -3,6 +3,8 @@ declare namespace JSX {
   interface IntrinsicElements {
     'calendar-date': React.DetailedHTMLProps<
       React.HTMLAttributes<HTMLElement> & {
+        /** 웹 컴포넌트는 class로 렌더링해야 CSS 적용됨 */
+        class?: string;
         value?: string;
         locale?: string;
         'focused-date'?: string;

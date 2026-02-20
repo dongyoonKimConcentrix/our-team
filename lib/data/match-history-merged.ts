@@ -38,7 +38,7 @@ export const MATCH_HISTORY_MERGED: MatchHistoryMergedItem[] = [
   { date: '2023-10-05', teamName: '신준석', stadium: '훼릭스 풋살클럽', contact: '01045330685', age: '-', skill: '-', weather: {} },
   { date: '2023-10-12', teamName: '아스팔', stadium: '훼릭스 풋살클럽', contact: '01050532569', age: '30대중후반', skill: '하하', weather: {} },
   { date: '2023-10-19', teamName: '조감독', stadium: 'W풋살클럽', contact: '01094242362', age: '-', skill: '-', weather: {} },
-  { date: '2023-10-26', teamName: 'FC파랑', stadium: '사커스토리', contact: '01066687969', age: '-', skill: '-', weather: {} },
+  { date: '2023-10-26', teamName: 'FC파랑', stadium: '사커스토리', contact: '01066687969', age: '30대중반', skill: '하하~하하하', weather: {} },
   { date: '2023-11-02', teamName: '무브먼트', stadium: '훼릭스 풋살클럽', contact: '-', age: '-', skill: '-', weather: {} },
   { date: '2023-11-09', teamName: 'FC JSD', stadium: '훼릭스 풋살클럽', contact: '01035834683', age: '-', skill: '-', weather: {} },
   { date: '2023-11-16', teamName: '아스팔', stadium: 'W풋살클럽', contact: '01050532569', age: '30대중후반', skill: '하하', weather: {} },

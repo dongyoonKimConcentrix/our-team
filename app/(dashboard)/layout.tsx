@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { createClient } from '@/lib/supabase/client';
 
 const NAV_ITEMS = [
   { label: 'Home', path: '/home', icon: 'home' },
@@ -45,6 +46,8 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const isHome = pathname === '/home';
 
   const isActive = (item: (typeof NAV_ITEMS)[number]) => {
     if (pathname === item.path) return true;
@@ -53,23 +56,99 @@ export default function DashboardLayout({
     return false;
   };
 
+  const handleLogout = async () => {
+    (document.getElementById('drawer-menu-dashboard') as HTMLInputElement | null)?.click();
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push('/login');
+    router.refresh();
+  };
+
   return (
-    <div className="min-h-screen bg-base-100 pb-20">
-      <main className="w-full px-4 py-6">
-        {children}
-      </main>
-      <nav className="dock dock-md">
-        {NAV_ITEMS.map((item) => (
-          <Link
-            key={item.path}
-            href={item.path}
-            className={isActive(item) ? 'dock-active text-primary' : ''}
-          >
-            {ICONS[item.icon]}
-            <span className="dock-label">{item.label}</span>
-          </Link>
-        ))}
-      </nav>
+    <div className="drawer drawer-end">
+      <input id="drawer-menu-dashboard" type="checkbox" className="drawer-toggle" />
+      <div className="drawer-content min-h-screen bg-base-100 pb-20 flex flex-col">
+        <header className="navbar fixed top-0 left-0 right-0 z-50 bg-base-100 shadow-sm">
+          <div className="navbar-start flex-1 min-w-0">
+            {!isHome && (
+              <button
+                type="button"
+                onClick={() => router.back()}
+                className="btn btn-ghost btn-circle shrink-0"
+                aria-label="뒤로 가기"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+            )}
+          </div>
+          <div className="navbar-center shrink-0">
+            <Link href="/home" className="btn btn-ghost text-xl font-bold">
+              FS Juntos
+            </Link>
+          </div>
+          <div className="navbar-end flex-1 flex justify-end gap-1">
+            <Link href="/search" className="btn btn-ghost btn-circle" aria-label="검색">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </Link>
+            <label htmlFor="drawer-menu-dashboard" className="btn btn-ghost btn-circle drawer-button" aria-label="메뉴">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h7" />
+              </svg>
+            </label>
+          </div>
+        </header>
+        <main className="w-full px-4 py-6 pt-20 flex-1">
+          {children}
+        </main>
+        <nav className="dock dock-md">
+          {NAV_ITEMS.map((item) => (
+            <Link
+              key={item.path}
+              href={item.path}
+              className={isActive(item) ? 'dock-active text-primary' : ''}
+            >
+              {ICONS[item.icon]}
+              <span className="dock-label">{item.label}</span>
+            </Link>
+          ))}
+        </nav>
+      </div>
+      <div className="drawer-side z-[100]">
+        <label htmlFor="drawer-menu-dashboard" aria-label="메뉴 닫기" className="drawer-overlay" />
+        <div className="menu bg-base-200 min-h-full w-80 p-4 flex flex-col">
+          <ul className="flex-1">
+            {NAV_ITEMS.map((item) => (
+              <li key={item.path}>
+                <Link
+                  href={item.path}
+                  className={isActive(item) ? 'active' : ''}
+                  onClick={() => {
+                    (document.getElementById('drawer-menu-dashboard') as HTMLInputElement | null)?.click();
+                  }}
+                >
+                  <span className="h-5 w-5 shrink-0 [&_svg]:h-5 [&_svg]:w-5">
+                    {ICONS[item.icon]}
+                  </span>
+                  {item.label}
+                </Link>
+              </li>
+            ))}
+          </ul>
+          <div className="pt-2 mt-2 border-t border-base-300">
+            <button
+              type="button"
+              className="btn btn-ghost btn-block justify-start gap-2 text-base-content/80"
+              onClick={handleLogout}
+            >
+              로그아웃
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

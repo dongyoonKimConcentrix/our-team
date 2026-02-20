@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
-import Script from 'next/script';
+import { useRouter, useParams } from 'next/navigation';
+import Link from 'next/link';
 
 type TeamOption = {
   id: string;
@@ -20,7 +20,6 @@ type StadiumOption = {
   lng: number;
 };
 
-/** 연락처 값만 010-1234-1234 형식으로 포맷 (표시용) */
 function formatPhoneDisplay(raw: string | undefined): string {
   if (!raw) return '';
   const digits = raw.replace(/\D/g, '');
@@ -44,8 +43,14 @@ function formatPhoneInput(value: string): string {
   return digits.slice(0, 11);
 }
 
-export default function NewMatchPage() {
+export default function EditMatchPage() {
   const router = useRouter();
+  const params = useParams();
+  const id = params?.id as string | undefined;
+
+  const [loading, setLoading] = useState(true);
+  const [matchDate, setMatchDate] = useState('');
+  const [stadiumId, setStadiumId] = useState('');
   const [teamOptions, setTeamOptions] = useState<TeamOption[]>([]);
   const [teamInput, setTeamInput] = useState('');
   const [selectedTeam, setSelectedTeam] = useState<TeamOption | null>(null);
@@ -54,14 +59,11 @@ export default function NewMatchPage() {
   const [newTeamSkill, setNewTeamSkill] = useState('');
   const [newTeamContact, setNewTeamContact] = useState('');
   const [stadiums, setStadiums] = useState<StadiumOption[]>([]);
-  const [matchDate, setMatchDate] = useState('');
-  const [stadiumId, setStadiumId] = useState('');
   const [submitLoading, setSubmitLoading] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [autocompleteOpen, setAutocompleteOpen] = useState(false);
   const autocompleteRef = useRef<HTMLDivElement>(null);
-  const callyPopoverRef = useRef<HTMLDivElement>(null);
-  const callyRef = useRef<HTMLElement & { value?: string }>(null);
 
   const searchTeams = useCallback(async (q: string) => {
     const res = await fetch(`/api/teams/search?q=${encodeURIComponent(q)}`);
@@ -70,27 +72,47 @@ export default function NewMatchPage() {
   }, []);
 
   useEffect(() => {
-    searchTeams(teamInput);
-  }, [teamInput, searchTeams]);
+    if (!id) return;
+    let cancelled = false;
+    Promise.all([
+      fetch(`/api/matches/${id}`).then((r) => r.json()),
+      fetch('/api/stadiums').then((r) => r.json()),
+    ]).then(([matchData, stadiumsData]) => {
+      if (cancelled) return;
+      if (matchData.error) {
+        setLoading(false);
+        return;
+      }
+      setMatchDate(matchData.match_date ?? '');
+      setStadiumId(matchData.stadium_id ?? '');
+      if (matchData.team_id && matchData.team_name) {
+        setSelectedTeam({
+          id: matchData.team_id,
+          name: matchData.team_name,
+          age_range: matchData.team_age_range ?? null,
+          skill_level: matchData.team_skill_level ?? null,
+          contacts: Array.isArray(matchData.team_contacts) ? matchData.team_contacts : [],
+        });
+        setTeamInput(matchData.team_name);
+      }
+      if (Array.isArray(stadiumsData)) {
+        const seen = new Set<string>();
+        const unique = (stadiumsData as StadiumOption[]).filter((s) => {
+          const key = (s.name ?? '').trim();
+          if (!key || seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+        setStadiums(unique);
+      }
+      setLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, [id]);
 
   useEffect(() => {
-    let cancelled = false;
-    fetch('/api/stadiums')
-      .then((r) => r.json())
-      .then((data) => {
-        if (!cancelled && Array.isArray(data)) {
-          const seen = new Set<string>();
-          const unique = (data as StadiumOption[]).filter((s) => {
-            const key = (s.name ?? '').trim();
-            if (!key || seen.has(key)) return false;
-            seen.add(key);
-            return true;
-          });
-          setStadiums(unique);
-        }
-      });
-    return () => { cancelled = true; };
-  }, []);
+    searchTeams(teamInput);
+  }, [teamInput, searchTeams]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -102,33 +124,19 @@ export default function NewMatchPage() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  /** Cally 달력 change → state 반영 + popover 닫기 */
-  useEffect(() => {
-    const el = callyRef.current;
-    const popover = callyPopoverRef.current;
-    if (!el || !popover) return;
-    const onChange = () => {
-      const value = el.value ?? '';
-      setMatchDate(value);
-      if (typeof popover.hidePopover === 'function') popover.hidePopover();
-    };
-    el.addEventListener('change', onChange);
-    return () => el.removeEventListener('change', onChange);
-  }, []);
-
   const filteredTeams = teamInput.trim()
     ? teamOptions.filter((t) => t.name.toLowerCase().includes(teamInput.trim().toLowerCase()))
     : teamOptions.slice(0, 10);
 
-  const handleSubmitMatch = async () => {
-    if (!matchDate || !stadiumId) {
+  const handleSubmit = async () => {
+    if (!id || !matchDate || !stadiumId) {
       setSubmitError('날짜와 구장을 선택해주세요.');
       return;
     }
     setSubmitError(null);
     setSubmitLoading(true);
     try {
-      let teamId: string | undefined = selectedTeam?.id;
+      let teamId: string | null = selectedTeam?.id ?? null;
       if (!teamId && teamInput.trim()) {
         const createRes = await fetch('/api/teams', {
           method: 'POST',
@@ -144,40 +152,64 @@ export default function NewMatchPage() {
         });
         const createData = await createRes.json();
         if (!createRes.ok) throw new Error(createData.error || '팀 등록 실패');
-        teamId = createData.id;
+        teamId = createData.id ?? null;
       }
-      const res = await fetch('/api/matches', {
-        method: 'POST',
+      const res = await fetch(`/api/matches/${id}`, {
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           match_date: matchDate,
           stadium_id: stadiumId,
           team_id: teamId,
-          owner_team_id: teamId,
         }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || '등록 실패');
+      if (!res.ok) throw new Error(data.error || '저장 실패');
       router.push('/admin/match');
     } catch (e) {
-      setSubmitError(e instanceof Error ? e.message : '등록 실패');
+      setSubmitError(e instanceof Error ? e.message : '저장 실패');
     } finally {
       setSubmitLoading(false);
     }
   };
 
-  const matchDateLabel = matchDate
-    ? `${matchDate.slice(0, 4)}년 ${parseInt(matchDate.slice(5, 7), 10)}월 ${parseInt(matchDate.slice(8, 10), 10)}일`
-    : '날짜 선택';
+  const handleDelete = async () => {
+    if (!id || !confirm('이 매칭을 삭제할까요? 삭제하면 복구할 수 없습니다.')) return;
+    setDeleteLoading(true);
+    try {
+      const res = await fetch(`/api/matches/${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('삭제 실패');
+      router.push('/admin/match');
+    } catch {
+      setSubmitError('삭제에 실패했습니다.');
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="max-w-2xl mx-auto flex justify-center py-12">
+        <span className="loading loading-spinner loading-lg text-primary" />
+      </div>
+    );
+  }
+
+  if (!id) {
+    return (
+      <div className="max-w-2xl mx-auto">
+        <p className="text-error">잘못된 경로입니다.</p>
+        <Link href="/admin/match" className="btn btn-ghost mt-2">매칭 목록으로</Link>
+      </div>
+    );
+  }
 
   return (
-    <>
-      <Script src="https://unpkg.com/cally" strategy="afterInteractive" type="module" />
-      <div className="max-w-2xl mx-auto">
-        <h1 className="text-2xl font-bold mb-1">매칭 등록</h1>
-        <p className="text-base-content/70 text-sm mb-6">
-          날짜와 구장만 먼저 등록할 수 있습니다. 상대팀은 나중에 매칭 목록에서 수정할 수 있습니다.
-        </p>
+    <div className="max-w-2xl mx-auto">
+      <h1 className="text-2xl font-bold mb-1">매칭 수정</h1>
+      <p className="text-base-content/70 text-sm mb-6">
+        날짜, 구장, 상대팀을 수정할 수 있습니다.
+      </p>
 
       <div className="card bg-base-200 shadow-sm mb-6">
         <div className="card-body">
@@ -187,39 +219,12 @@ export default function NewMatchPage() {
               <label className="label">
                 <span className="label-text">매칭 날짜</span>
               </label>
-              <button
-                type="button"
-                className="input input-bordered w-full text-left"
-                {...({ popovertarget: 'cally-popover-match' } as React.ButtonHTMLAttributes<HTMLButtonElement>)}
-                id="cally-trigger-match"
-                style={{ anchorName: '--cally-trigger-match' } as React.CSSProperties}
-              >
-                {matchDateLabel}
-              </button>
-              <div
-                ref={callyPopoverRef}
-                popover="auto"
-                id="cally-popover-match"
-                className="dropdown bg-base-100 rounded-box shadow-lg p-2"
-                style={{ positionAnchor: '--cally-trigger-match' } as React.CSSProperties}
-              >
-                <calendar-date
-                  ref={callyRef}
-                  class="cally w-full bg-base-100 border border-base-300 rounded-box"
-                  value={matchDate}
-                  locale="ko-KR"
-                >
-                  {/* @ts-expect-error Cally slot */}
-                  <svg aria-label="Previous" className="fill-current size-4" slot="previous" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                    <path fill="currentColor" d="M15.75 19.5 8.25 12l7.5-7.5" />
-                  </svg>
-                  {/* @ts-expect-error Cally slot */}
-                  <svg aria-label="Next" className="fill-current size-4" slot="next" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                    <path fill="currentColor" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
-                  </svg>
-                  <calendar-month />
-                </calendar-date>
-              </div>
+              <input
+                type="date"
+                className="input input-bordered w-full"
+                value={matchDate}
+                onChange={(e) => setMatchDate(e.target.value)}
+              />
             </div>
             <div className="form-control">
               <label className="label">
@@ -239,65 +244,49 @@ export default function NewMatchPage() {
               </select>
             </div>
           </div>
-          {submitError && (
-            <p className="text-error text-sm mt-2">{submitError}</p>
-          )}
-          <div className="card-actions justify-start mt-2">
-            <button
-              type="button"
-              className="btn btn-primary btn-block"
-              onClick={handleSubmitMatch}
-              disabled={submitLoading}
-            >
-              {submitLoading ? '등록 중…' : '매칭 등록'}
-            </button>
-          </div>
         </div>
       </div>
 
       <div className="card bg-base-200 shadow-sm mb-6">
         <div className="card-body">
-          <h2 className="card-title text-base text-base-content/80">상대팀</h2>
-          <p className="text-base-content/60 text-sm">기존 팀을 선택하거나, 팀명을 입력해 새 팀으로 등록할 수 있습니다. 새 팀이면 나이·실력을 입력하세요.</p>
-          <div className="flex flex-col gap-4">
-            <div className="form-control relative" ref={autocompleteRef}>
-              <label className="label">
-                <span className="label-text">팀명 검색 / 입력</span>
-              </label>
-              <input
-                type="text"
-                className="input input-bordered w-full"
-                placeholder="기존 팀 선택 또는 새 팀명 입력"
-                value={selectedTeam ? selectedTeam.name : teamInput}
-                onChange={(e) => {
-                  setSelectedTeam(null);
-                  setTeamInput(e.target.value);
-                  setAutocompleteOpen(true);
-                }}
-                onFocus={() => setAutocompleteOpen(true)}
-              />
-              {autocompleteOpen && filteredTeams.length > 0 && (
-                <ul className="absolute z-10 mt-1 w-full rounded-box bg-base-100 border border-base-300 shadow-lg max-h-60 overflow-auto">
-                  {filteredTeams.map((t) => (
-                    <li key={t.id}>
-                      <button
-                        type="button"
-                        className="w-full text-left px-4 py-2 hover:bg-base-200"
-                        onClick={() => {
-                          setSelectedTeam(t);
-                          setTeamInput(t.name);
-                          setAutocompleteOpen(false);
-                        }}
-                      >
-                        {t.name}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
+          <h2 className="card-title text-base text-base-content/80">상대팀 (선택)</h2>
+          <div className="form-control relative" ref={autocompleteRef}>
+            <label className="label">
+              <span className="label-text">팀명 검색</span>
+            </label>
+            <input
+              type="text"
+              className="input input-bordered w-full"
+              placeholder="팀명 입력"
+              value={selectedTeam ? selectedTeam.name : teamInput}
+              onChange={(e) => {
+                setSelectedTeam(null);
+                setTeamInput(e.target.value);
+                setAutocompleteOpen(true);
+              }}
+              onFocus={() => setAutocompleteOpen(true)}
+            />
+            {autocompleteOpen && filteredTeams.length > 0 && (
+              <ul className="absolute z-10 mt-1 w-full rounded-box bg-base-100 border border-base-300 shadow-lg max-h-60 overflow-auto">
+                {filteredTeams.map((t) => (
+                  <li key={t.id}>
+                    <button
+                      type="button"
+                      className="w-full text-left px-4 py-2 hover:bg-base-200"
+                      onClick={() => {
+                        setSelectedTeam(t);
+                        setTeamInput(t.name);
+                        setAutocompleteOpen(false);
+                      }}
+                    >
+                      {t.name}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
             {selectedTeam ? (
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
                 <div className="form-control">
                   <label className="label">
                     <span className="label-text">나이</span>
@@ -340,7 +329,7 @@ export default function NewMatchPage() {
                 </div>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
                 <div className="form-control">
                   <label className="label">
                     <span className="label-text">나이 (새 팀일 때)</span>
@@ -384,7 +373,32 @@ export default function NewMatchPage() {
           </div>
         </div>
       </div>
+
+      {submitError && (
+        <p className="text-error text-sm mb-4">{submitError}</p>
+      )}
+
+      <div className="flex flex-wrap gap-3 justify-center">
+        <button
+          type="button"
+          className="btn btn-primary"
+          onClick={handleSubmit}
+          disabled={submitLoading}
+        >
+          {submitLoading ? '저장 중…' : '저장'}
+        </button>
+        <button
+          type="button"
+          className="btn btn-error"
+          onClick={handleDelete}
+          disabled={deleteLoading}
+        >
+          {deleteLoading ? '삭제 중…' : '매칭 삭제'}
+        </button>
+        <Link href="/admin/match" className="btn btn-neutral">
+          목록으로
+        </Link>
       </div>
-    </>
+    </div>
   );
 }

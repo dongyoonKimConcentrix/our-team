@@ -55,9 +55,6 @@ export default async function TeamPage({ searchParams }: Props) {
   if (matchHistory.length > 0) {
     return (
       <div className="max-w-2xl mx-auto">
-        <Link href="/map" className="btn btn-ghost btn-sm mb-4">
-          ← 지도로 돌아가기
-        </Link>
         <div className="card bg-base-200 shadow-sm mb-6">
           <div className="card-body">
             <div className="flex items-center gap-2 flex-wrap mb-2">

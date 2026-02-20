@@ -30,7 +30,6 @@ VALUES
   (gen_random_uuid(), '와이드FC', '20대중후반', NULL, '[{"type":"phone","value":"01045818420"}]'::jsonb, true),
   (gen_random_uuid(), '01034111575', '30대초중반', NULL, '[{"type":"phone","value":"01034111575"}]'::jsonb, false),
   (gen_random_uuid(), '01067905477', '20대중후반', NULL, '[{"type":"phone","value":"01067905477"}]'::jsonb, true),
-  (gen_random_uuid(), 'FC아스팔', '30대중후반', '하하', '[{"type":"phone","value":"00150532569"}]'::jsonb, false),
   (gen_random_uuid(), '이승환', '30초중반', '하하하', '[{"type":"phone","value":"01093091371"}]'::jsonb, false),
   (gen_random_uuid(), 'FCR', '30대후반', '하하하', '[{"type":"phone","value":"01053018889"}]'::jsonb, false),
   (gen_random_uuid(), 'FCR', '30대후반', '하하하', '[{"type":"phone","value":"01071882167"}]'::jsonb, false),

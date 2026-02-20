@@ -111,7 +111,7 @@ async function main() {
     if (!g.teams.some((t) => t.teamName.trim() === m.teamName.trim())) g.teams.push(m);
   }
 
-  for (const [, { date, stadium, teams }] of groups) {
+  for (const [, { date, stadium, teams }] of Array.from(groups.entries())) {
     const stadiumId = stadiumIds.get(stadium) ?? (await getOrCreateStadium(stadium));
     stadiumIds.set(stadium, stadiumId);
 

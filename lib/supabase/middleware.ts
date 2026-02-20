@@ -38,6 +38,12 @@ export async function updateSession(request: NextRequest) {
     const isProtected = protectedPaths.some((p) => pathname === p || pathname.startsWith(p + '/'));
     const isAuthPage = authPaths.some((p) => pathname.startsWith(p));
 
+    if (pathname === '/' && user) {
+      url.pathname = '/home';
+      url.searchParams.delete('next');
+      return NextResponse.redirect(url);
+    }
+
     if (isProtected && !user) {
       url.pathname = '/login';
       url.searchParams.set('next', pathname);

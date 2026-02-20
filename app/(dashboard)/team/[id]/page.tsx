@@ -67,9 +67,6 @@ export default async function TeamDetailPage({ params }: { params: Promise<Param
 
   return (
     <div className="max-w-2xl mx-auto">
-      <Link href="/map" className="btn btn-ghost btn-sm mb-4">
-        ← 지도로 돌아가기
-      </Link>
 
       <div className="card bg-base-200 shadow-sm mb-6">
         <div className="card-body">
@@ -79,11 +76,11 @@ export default async function TeamDetailPage({ params }: { params: Promise<Param
               <span className="badge badge-error">블랙리스트</span>
             )}
           </div>
-          <p className="text-sm text-base-content/70 mb-1">연락처</p>
-          <p className="mb-3">{contactDisplay}</p>
-          <p className="text-sm text-base-content/70 mb-1">나이</p>
-          <p className="mb-3">{team.age_range ?? '-'}</p>
-          <p className="text-sm text-base-content/70 mb-1">실력</p>
+          <p className="text-sm text-base-content font-bold">연락처</p>
+          <p>{contactDisplay}</p>
+          <p className="text-sm text-base-content font-bold">나이</p>
+          <p>{team.age_range ?? '-'}</p>
+          <p className="text-sm text-base-content font-bold">실력</p>
           <p>{team.skill_level ?? '-'}</p>
         </div>
       </div>
