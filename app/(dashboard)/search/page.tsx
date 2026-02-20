@@ -1,18 +1,14 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import Box from '@mui/material/Box';
-import Chip from '@mui/material/Chip';
-import Container from '@mui/material/Container';
-import InputAdornment from '@mui/material/InputAdornment';
-import Paper from '@mui/material/Paper';
-import TextField from '@mui/material/TextField';
-import Typography from '@mui/material/Typography';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
-import dayjs, { type Dayjs } from 'dayjs';
+import Script from 'next/script';
+import dayjs from 'dayjs';
+import 'dayjs/locale/ko';
+import { getMatchHistoryByDate } from '@/lib/data/match-history-merged';
+import { formatContactValue, formatContactsDisplay } from '@/lib/format-contact';
+
+dayjs.locale('ko');
 
 type SearchTeam = {
   id: string;
@@ -28,13 +24,29 @@ const DEBOUNCE_MS = 300;
 export default function SearchPage() {
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
-  const [filterDate, setFilterDate] = useState<Dayjs | null>(null);
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [results, setResults] = useState<SearchTeam[]>([]);
   const [loading, setLoading] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const calendarRef = useRef<HTMLElement & { value?: string }>(null);
+
+  /** 캘린더에서 선택한 날짜의 매칭 이력 (match-history-merged.ts 기준) */
+  const dateMatchHistory = selectedDate ? getMatchHistoryByDate(selectedDate) : [];
 
   useEffect(() => {
     setMounted(true);
+  }, []);
+
+  /** Cally 웹 컴포넌트는 shadow DOM 사용 → ref로 네이티브 change 리스너 등록 */
+  useEffect(() => {
+    const el = calendarRef.current;
+    if (!el) return;
+    const onChange = () => {
+      const value = (el as HTMLElement & { value?: string }).value;
+      setSelectedDate(value ?? null);
+    };
+    el.addEventListener('change', onChange);
+    return () => el.removeEventListener('change', onChange);
   }, []);
 
   useEffect(() => {
@@ -47,7 +59,7 @@ export default function SearchPage() {
     try {
       const params = new URLSearchParams();
       if (debouncedQuery) params.set('q', debouncedQuery);
-      if (filterDate) params.set('date', filterDate.format('YYYY-MM-DD'));
+      if (selectedDate) params.set('date', selectedDate);
       const res = await fetch(`/api/search/teams?${params}`);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || '검색 실패');
@@ -57,119 +69,147 @@ export default function SearchPage() {
     } finally {
       setLoading(false);
     }
-  }, [debouncedQuery, filterDate]);
+  }, [debouncedQuery, selectedDate]);
 
   useEffect(() => {
     if (!mounted) return;
     fetchResults();
-  }, [mounted, debouncedQuery, filterDate, fetchResults]);
+  }, [mounted, debouncedQuery, selectedDate, fetchResults]);
 
   const contactsText = (c: SearchTeam['contacts']) => {
     if (!Array.isArray(c) || !c.length) return '-';
-    return c.map((x) => `${x.type ?? ''}: ${x.value ?? ''}`).join(', ');
+    return formatContactsDisplay(c);
   };
 
   return (
-    <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="ko">
-      <Container maxWidth="md">
-        <Typography variant="h6" fontWeight={600} gutterBottom>
-          통합 검색
-        </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          팀명, 구장명, 연락처로 부분 일치 검색. 날짜를 선택하면 해당 날짜에 매칭한 팀만 표시됩니다.
-        </Typography>
+    <>
+      <Script
+        src="https://unpkg.com/cally"
+        strategy="afterInteractive"
+        type="module"
+      />
+      <div className="max-w-2xl mx-auto">
+        <h1 className="text-2xl font-bold mb-1">통합 검색</h1>
+        <p className="text-base-content/70 text-sm mb-6">
+          팀명, 구장명, 연락처로 검색. 달력에서 날짜를 누르면 해당 날짜에 매칭한 팀이 아래에 표시됩니다.
+        </p>
 
-        <Paper sx={{ p: 2, borderRadius: 2, mb: 2 }}>
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'flex-start' }}>
-            <TextField
-              fullWidth
-              size="small"
-              placeholder="팀명, 구장명, 연락처 검색..."
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <Box component="span" sx={{ color: 'text.secondary', fontSize: 20 }}>🔍</Box>
-                  </InputAdornment>
-                ),
-              }}
-              sx={{ flex: '1 1 240px', maxWidth: 400 }}
-            />
-            {mounted && (
-              <DatePicker
-                label="매칭 날짜 필터"
-                value={filterDate}
-                onChange={(d) => setFilterDate(d)}
-                slotProps={{
-                  textField: {
-                    size: 'small',
-                    sx: { width: 200 },
-                  },
-                }}
+        <div className="flex flex-wrap gap-3 items-end mb-6">
+          <div className="form-control flex-1 min-w-[200px]">
+            <div className="join w-full">
+              <input
+                type="text"
+                placeholder="팀명, 구장명, 연락처..."
+                className="input input-bordered join-item flex-1"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
               />
+              <span className="join-item btn btn-disabled no-animation">🔍</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Cally 웹 컴포넌트 (change는 ref로 수신) */}
+        <calendar-date
+          ref={calendarRef}
+          className="cally bg-base-100 border border-base-300 shadow-lg rounded-box mb-6"
+          value={selectedDate ?? ''}
+          locale="ko-KR"
+        >
+          {/* @ts-expect-error slot은 Cally 웹 컴포넌트용으로 SVG 표준 타입에 없음 */}
+          <svg aria-label="Previous" className="fill-current size-4" slot="previous" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path fill="currentColor" d="M15.75 19.5 8.25 12l7.5-7.5" />
+          </svg>
+          {/* @ts-expect-error slot은 Cally 웹 컴포넌트용으로 SVG 표준 타입에 없음 */}
+          <svg aria-label="Next" className="fill-current size-4" slot="next" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path fill="currentColor" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+          </svg>
+          <calendar-month />
+        </calendar-date>
+
+        {/* 선택한 날짜의 매칭 팀 (match-history-merged.ts 기준, 달력 아래) */}
+        {selectedDate && (
+          <div className="mb-6">
+            <h2 className="text-lg font-semibold mb-3">
+              {dayjs(selectedDate).format('YYYY년 MM월 DD일')} 매칭 이력
+            </h2>
+            {dateMatchHistory.length === 0 ? (
+              <p className="text-base-content/70 text-sm">해당 날짜 매칭 이력이 없습니다.</p>
+            ) : (
+              <ul className="space-y-2">
+                {dateMatchHistory.map((m, i) => (
+                  <li key={`${m.date}-${m.teamName}-${i}`}>
+                    <div className={`card card-compact bg-base-200 shadow-sm border-l-4 ${m.isBlacklisted ? 'border-error' : 'border-transparent'}`}>
+                      <div className="card-body py-3 px-4">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-bold text-lg">{m.teamName}</span>
+                          {m.isBlacklisted && <span className="badge badge-error badge-sm">블랙리스트</span>}
+                        </div>
+                        <p className="text-sm text-base-content/60">
+                          {formatContactValue(m.contact)}
+                        </p>
+                        <p className="text-sm text-base-content/70">
+                          {m.stadium}
+                        </p>
+                        <p className="text-sm text-base-content/70">
+                          {m.age !== '-' ? m.age : '-'} / {m.skill !== '-' ? m.skill : '-'}
+                        </p>
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
             )}
-          </Box>
-        </Paper>
-
-        {loading && (
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-            검색 중...
-          </Typography>
+          </div>
         )}
 
-        <Box component="ul" sx={{ m: 0, p: 0, listStyle: 'none' }}>
-          {results.map((team) => (
-            <Box
-              component="li"
-              key={team.id}
-              sx={{
-                mb: 1,
-                '&:last-child': { mb: 0 },
-              }}
-            >
-              <Paper
-                component={Link}
-                href={`/team/${team.id}`}
-                sx={{
-                  display: 'block',
-                  p: 2,
-                  borderRadius: 2,
-                  textDecoration: 'none',
-                  borderLeft: '4px solid',
-                  borderColor: team.is_blacklisted ? 'error.main' : 'transparent',
-                  bgcolor: team.is_blacklisted ? 'error.light' : 'background.paper',
-                  color: team.is_blacklisted ? 'error.dark' : 'text.primary',
-                  '&:hover': {
-                    bgcolor: team.is_blacklisted ? 'error.light' : 'action.hover',
-                  },
-                }}
-              >
-                <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 1, mb: 0.5 }}>
-                  <Typography variant="subtitle1" fontWeight={600}>
-                    {team.name}
-                  </Typography>
-                  {team.is_blacklisted && (
-                    <Chip label="블랙리스트" color="error" size="small" sx={{ fontWeight: 600 }} />
-                  )}
-                </Box>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
-                  나이대 {team.age_range ?? '-'} · 실력 {team.skill_level ?? '-'}
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  연락처: {contactsText(team.contacts)}
-                </Typography>
-              </Paper>
-            </Box>
-          ))}
-        </Box>
-
-        {!loading && mounted && results.length === 0 && (
-          <Typography variant="body2" color="text.secondary">
-            {debouncedQuery || filterDate ? '검색 결과가 없습니다.' : '검색어를 입력하거나 날짜를 선택해보세요.'}
-          </Typography>
+        {/* 검색 결과: 검색어 입력 또는 달력 날짜 선택 시에만 노출 */}
+        {(debouncedQuery || selectedDate) && (
+          <>
+            <h2 className="text-lg font-semibold mb-3">검색 결과</h2>
+            {loading ? (
+              <div className="flex justify-center py-6">
+                <span className="loading loading-spinner loading-md text-primary" />
+              </div>
+            ) : (
+              <ul className="space-y-2">
+                {results.map((team) => (
+                  <li key={team.id}>
+                    <Link
+                      href={`/team/${team.id}`}
+                      className={`card card-compact bg-base-200 shadow-sm hover:bg-base-300 transition-colors border-l-4 ${
+                        team.is_blacklisted ? 'border-error' : 'border-transparent'
+                      }`}
+                    >
+                      <div className="card-body py-3 px-4">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-bold text-lg">{team.name}</span>
+                          {team.is_blacklisted && (
+                            <span className="badge badge-error badge-sm">블랙리스트</span>
+                          )}
+                        </div>
+                        <p className="text-sm text-base-content/60">
+                          {contactsText(team.contacts)}
+                        </p>
+                        <p className="text-sm text-base-content/70">
+                          {team.age_range ?? '-'} / {team.skill_level ?? '-'}
+                        </p>
+                      </div>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {!loading && results.length === 0 && (debouncedQuery || selectedDate) && (
+              <p className="text-base-content/70 text-sm">검색 결과가 없습니다.</p>
+            )}
+          </>
         )}
-      </Container>
-    </LocalizationProvider>
+
+        {mounted && !debouncedQuery && !selectedDate && (
+          <p className="text-base-content/60 text-sm">검색어를 입력하거나 달력에서 날짜를 선택해보세요.</p>
+        )}
+      </div>
+    </>
   );
 }

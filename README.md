@@ -30,6 +30,18 @@ NEXT_PUBLIC_NAVER_MAP_CLIENT_ID=your-ncp-client-id
 
 3. 구장 데이터: `stadiums` 테이블에 `location`(PostGIS Point)이 있어야 지도에 마커가 표시됩니다. `match_teams`에 매칭별 팀을 넣어야 팝업에 팀 목록이 나옵니다.
 
+### 정적 데이터 → DB 동기화
+
+`lib/data/match-history-merged.ts`가 최신일 때, 이 데이터를 기준으로 DB(teams, stadiums, matches, match_teams)를 채우려면:
+
+```bash
+# .env.local 의 Supabase 변수 로드 후 실행 (또는 export 후 실행)
+npm run sync-merged
+```
+
+- 환경변수: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` 또는 `SUPABASE_SERVICE_ROLE_KEY`
+- DB 직접 쓰기 권한이 필요하면 `SUPABASE_SERVICE_ROLE_KEY` 사용 권장
+
 ## 실행
 
 ```bash

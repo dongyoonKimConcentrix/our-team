@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "sync-merged": "tsx scripts/sync-merged-to-db.ts"
   },
   "dependencies": {
     "@emotion/cache": "^11.13.1",
@@ -18,17 +19,26 @@
     "@mui/x-date-pickers": "^7.22.2",
     "@supabase/ssr": "^0.5.2",
     "@supabase/supabase-js": "^2.45.0",
+    "@tailwindcss/postcss": "^4.2.0",
+    "daisyui": "^5.5.18",
     "dayjs": "^1.11.13",
     "next": "14.2.18",
+    "pikaday": "^1.8.2",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-naver-maps": "^0.1.4",
     "recharts": "^2.13.3"
   },
   "devDependencies": {
+    "dotenv": "^16.4.5",
     "@types/node": "^22.9.0",
+    "@types/pikaday": "^1.7.10",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
+    "autoprefixer": "^10.4.24",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^4.2.0",
+"tsx": "^4.19.2",
     "typescript": "^5.6.3"
   }
 }

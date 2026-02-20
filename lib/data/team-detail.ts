@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { formatMonthDayKo } from '@/lib/format-date';
 
 export type MannerScorePoint = {
   matchDate: string;
@@ -64,7 +65,7 @@ export async function getTeamMannerScoresLast5(
       matchId,
       matchDate: v.date,
       score: Math.round((v.sum / v.count) * 10) / 10,
-      label: v.date ? new Date(v.date + 'Z').toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' }) : '-',
+      label: v.date ? formatMonthDayKo(v.date) : '-',
     }))
     .sort((a, b) => b.matchDate.localeCompare(a.matchDate))
     .slice(0, 5)

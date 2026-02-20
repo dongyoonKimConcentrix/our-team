@@ -3,13 +3,6 @@
 import { useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import Box from '@mui/material/Box';
-import Button from '@mui/material/Button';
-import Container from '@mui/material/Container';
-import Grid from '@mui/material/Grid2';
-import TextField from '@mui/material/TextField';
-import Typography from '@mui/material/Typography';
-import Paper from '@mui/material/Paper';
 import { createClient } from '@/lib/supabase/client';
 
 function LoginForm() {
@@ -41,97 +34,117 @@ function LoginForm() {
   };
 
   return (
-    <Box
-      sx={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        bgcolor: 'background.default',
-        py: 4,
-      }}
-    >
-      <Container maxWidth="sm">
-        <Grid container justifyContent="center">
-          <Grid size={{ xs: 12 }}>
-            <Paper
-              elevation={0}
-              sx={{
-                p: { xs: 3, sm: 4 },
-                borderRadius: 3,
-                border: 1,
-                borderColor: 'divider',
-              }}
-            >
-              <Typography component="h1" variant="h5" fontWeight={700} gutterBottom>
+    <div className="min-h-screen flex items-center justify-center bg-base-100 py-8 px-4">
+      <div className="card w-full max-w-md bg-base-200 shadow-xl border border-base-300">
+        <div className="card-body">
+          <form onSubmit={handleSubmit}>
+            <fieldset className="fieldset w-full border-0 gap-4 p-0">
+              <legend className="fieldset-legend text-2xl font-bold mb-1">
                 로그인
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                팀 매칭 관리 서비스에 로그인하세요.
-              </Typography>
-              <Box component="form" onSubmit={handleSubmit}>
-                <Grid container spacing={2}>
-                  <Grid size={12}>
-                    <TextField
-                      fullWidth
-                      label="아이디"
-                      value={id}
-                      onChange={(e) => setId(e.target.value)}
-                      autoComplete="username"
-                      required
-                    />
-                  </Grid>
-                  <Grid size={12}>
-                    <TextField
-                      fullWidth
-                      label="비밀번호"
-                      type="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      autoComplete="current-password"
-                      required
-                    />
-                  </Grid>
-                  {error && (
-                  <Grid size={12}>
-                    <Typography variant="body2" color="error">{error}</Typography>
-                  </Grid>
+              </legend>
+              <p className="label text-base-content/70 text-sm mb-4">
+                Our Team 서비스에 로그인하세요.
+              </p>
+
+              <label
+                className={`input input-bordered w-full flex items-center gap-2 ${error ? 'input-error' : ''}`}
+                htmlFor="login-id"
+              >
+                <svg
+                  className="h-[1em] shrink-0 opacity-50"
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden
+                >
+                  <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+                  <circle cx="12" cy="7" r="4" />
+                </svg>
+                <input
+                  id="login-id"
+                  type="text"
+                  className="grow bg-transparent border-none outline-none min-w-0"
+                  placeholder="아이디"
+                  value={id}
+                  onChange={(e) => setId(e.target.value)}
+                  autoComplete="username"
+                  required
+                />
+              </label>
+
+              <label
+                className={`input input-bordered w-full flex items-center gap-2 ${error ? 'input-error' : ''}`}
+                htmlFor="login-pw"
+              >
+                <svg
+                  className="h-[1em] shrink-0 opacity-50"
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden
+                >
+                  <path d="M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z" />
+                  <circle cx="16.5" cy="7.5" r=".5" fill="currentColor" />
+                </svg>
+                <input
+                  id="login-pw"
+                  type="password"
+                  className="grow bg-transparent border-none outline-none min-w-0"
+                  placeholder="비밀번호"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  autoComplete="current-password"
+                  required
+                />
+              </label>
+
+              {error && <p className="validator-hint">{error}</p>}
+
+              <button
+                type="submit"
+                className="btn btn-primary w-full mt-2"
+                disabled={loading}
+              >
+                {loading ? (
+                  <>
+                    <span className="loading loading-spinner loading-sm" />
+                    로그인 중…
+                  </>
+                ) : (
+                  '로그인'
                 )}
-                  <Grid size={12}>
-                    <Button
-                      type="submit"
-                      fullWidth
-                      variant="contained"
-                      size="large"
-                      sx={{ py: 1.5 }}
-                      disabled={loading}
-                    >
-                      {loading ? '로그인 중…' : '로그인'}
-                    </Button>
-                  </Grid>
-                  <Grid size={12}>
-                    <Box sx={{ textAlign: 'center' }}>
-                      <Button component={Link} href="/" size="small" color="inherit">
-                        홈으로
-                      </Button>
-                    </Box>
-                  </Grid>
-                </Grid>
-              </Box>
-            </Paper>
-          </Grid>
-        </Grid>
-      </Container>
-    </Box>
+              </button>
+
+              <div className="text-center pt-2">
+                <Link href="/" className="link link-hover text-sm">
+                  홈으로
+                </Link>
+              </div>
+            </fieldset>
+          </form>
+        </div>
+      </div>
+    </div>
   );
 }
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={
-      <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'background.default' }}>
-        <Typography color="text.secondary">로딩 중...</Typography>
-      </Box>
-    }>
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-base-100">
+          <span className="loading loading-spinner loading-lg text-primary" />
+        </div>
+      }
+    >
       <LoginForm />
     </Suspense>
   );

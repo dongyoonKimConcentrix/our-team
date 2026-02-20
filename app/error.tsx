@@ -1,10 +1,6 @@
 'use client';
 
 import { useEffect } from 'react';
-import Box from '@mui/material/Box';
-import Button from '@mui/material/Button';
-import Typography from '@mui/material/Typography';
-import Container from '@mui/material/Container';
 
 export default function Error({
   error,
@@ -18,18 +14,14 @@ export default function Error({
   }, [error]);
 
   return (
-    <Container maxWidth="sm">
-      <Box sx={{ py: 4, textAlign: 'center' }}>
-        <Typography variant="h6" color="error" gutterBottom>
-          오류가 발생했습니다
-        </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          {error.message || '알 수 없는 오류'}
-        </Typography>
-        <Button variant="contained" onClick={reset}>
-          다시 시도
-        </Button>
-      </Box>
-    </Container>
+    <div className="max-w-sm mx-auto py-12 text-center px-4">
+      <h2 className="text-lg font-semibold text-error mb-2">오류가 발생했습니다</h2>
+      <p className="text-sm text-base-content/70 mb-4">
+        {error.message || '알 수 없는 오류'}
+      </p>
+      <button type="button" className="btn btn-primary" onClick={reset}>
+        다시 시도
+      </button>
+    </div>
   );
 }

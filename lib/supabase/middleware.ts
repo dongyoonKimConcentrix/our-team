@@ -29,7 +29,12 @@ export async function updateSession(request: NextRequest) {
       },
     });
 
-    const { data: { user } } = await supabase.auth.getUser();
+    const GET_USER_TIMEOUT_MS = 5000;
+    const getUserPromise = supabase.auth.getUser();
+    const timeoutPromise = new Promise<{ data: { user: null } }>((_, reject) =>
+      setTimeout(() => reject(new Error('getUser timeout')), GET_USER_TIMEOUT_MS)
+    );
+    const { data: { user } } = await Promise.race([getUserPromise, timeoutPromise]);
     const isProtected = protectedPaths.some((p) => pathname === p || pathname.startsWith(p + '/'));
     const isAuthPage = authPaths.some((p) => pathname.startsWith(p));
 

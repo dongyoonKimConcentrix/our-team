@@ -1,6 +1,6 @@
 /**
  * matching_date_merged.csv 기반 매칭 이력 (구장별 필터용)
- * 날짜, 팀명/이름, 구장, 연락처, 나이, 실력, 20시 기준 날씨
+ * 날짜, 팀명/이름, 구장, 연락처, 나이, 실력, 20시 기준 날씨, 블랙리스트 유무
  */
 export type MatchHistoryMergedItem = {
   date: string;
@@ -9,16 +9,18 @@ export type MatchHistoryMergedItem = {
   contact: string;
   age: string;
   skill: string;
+  /** 블랙리스트 여부. CSV/시트에 컬럼 있으면 true/false로 넣으면 됨 */
+  isBlacklisted?: boolean;
   /** 20시 기준 기온(°C), 습도(%), 구름(맑음/구름조금/구름많음/흐림). API 없을 때 사용 */
   weather?: { temp_c?: number; humidity?: number; clouds?: string };
 };
 
 export const MATCH_HISTORY_MERGED: MatchHistoryMergedItem[] = [
-  { date: '2023-05-03', teamName: '지성FC', stadium: 'W풋살클럽', contact: '-', age: '-', skill: '하', weather: { temp_c: 18, humidity: 55, clouds: '맑음' } },
-  { date: '2023-05-11', teamName: '해볼라고', stadium: '훼릭스 풋살클럽', contact: '01077278138', age: '30대중후반', skill: '-', weather: {} },
-  { date: '2023-05-18', teamName: '아스팔', stadium: '훼릭스 풋살클럽', contact: '00150532569', age: '30대중후반', skill: '하하', weather: {} },
+  { date: '2023-05-03', teamName: '지성FC', stadium: 'W풋살클럽', contact: '01048187677', age: '30대~40대', skill: '하', weather: { temp_c: 18, humidity: 55, clouds: '맑음' } },
+  { date: '2023-05-11', teamName: 'FC해볼라고', stadium: '훼릭스 풋살클럽', contact: '01077278138', age: '30대중후반', skill: '하하하', weather: {} },
+  { date: '2023-05-18', teamName: '아스팔', stadium: '훼릭스 풋살클럽', contact: '01050532569', age: '30대중후반', skill: '하하', weather: {} },
   { date: '2023-05-25', teamName: 'FC그로우', stadium: '도내동 풋살장', contact: '01073226058', age: '30대초', skill: '하하', weather: {} },
-  { date: '2023-06-01', teamName: '아스팔', stadium: '훼릭스 풋살클럽', contact: '00150532569', age: '30대중후반', skill: '하하', weather: {} },
+  { date: '2023-06-01', teamName: '아스팔', stadium: '훼릭스 풋살클럽', contact: '01050532569', age: '30대중후반', skill: '하하', weather: {} },
   { date: '2023-06-08', teamName: '신준석', stadium: '훼릭스 풋살클럽', contact: '01045330685', age: '-', skill: '-', weather: {} },
   { date: '2023-06-15', teamName: 'FCR', stadium: '훼릭스 풋살클럽', contact: '01053018889', age: '30대후반', skill: '하하하', weather: {} },
   { date: '2023-06-22', teamName: '김현종', stadium: '백두풋살장', contact: '01076642661', age: '-', skill: '-', weather: {} },
@@ -26,20 +28,20 @@ export const MATCH_HISTORY_MERGED: MatchHistoryMergedItem[] = [
   { date: '2023-07-27', teamName: '좀비', stadium: '훼릭스 풋살클럽', contact: '01043395321', age: '-', skill: '하하', weather: {} },
   { date: '2023-08-03', teamName: 'FC우마이', stadium: '풋볼아카데미', contact: '01087482816', age: '-', skill: '최하', weather: {} },
   { date: '2023-08-09', teamName: '말라즈', stadium: '용두그린 풋살장', contact: '01044315907', age: '-', skill: '하하', weather: {} },
-  { date: '2023-08-17', teamName: '아스팔', stadium: 'W풋살클럽', contact: '00150532569', age: '30대중후반', skill: '하하', weather: {} },
-  { date: '2023-08-24', teamName: '해피니스', stadium: '고양 쌈바 풋볼파크', contact: '-', age: '-', skill: '-', weather: {} },
+  { date: '2023-08-17', teamName: '아스팔', stadium: 'W풋살클럽', contact: '01050532569', age: '30대중후반', skill: '하하', weather: {} },
+  { date: '2023-08-24', teamName: '해피니스', stadium: '고양 쌈바 풋볼파크', contact: '01047676048', age: '30대', skill: '하하하', weather: {} },
   { date: '2023-08-31', teamName: 'SHFC', stadium: 'W풋살클럽', contact: '01044438228', age: '30대중후반', skill: '하하', weather: {} },
   { date: '2023-09-07', teamName: '무브먼트', stadium: '훼릭스 풋살클럽', contact: '-', age: '-', skill: '-', weather: {} },
-  { date: '2023-09-14', teamName: '아스팔', stadium: 'W풋살클럽', contact: '00150532569', age: '30대중후반', skill: '하하', weather: {} },
+  { date: '2023-09-14', teamName: '아스팔', stadium: 'W풋살클럽', contact: '01050532569', age: '30대중후반', skill: '하하', weather: {} },
   { date: '2023-09-21', teamName: 'FCHAHA', stadium: 'W풋살클럽', contact: '01037384391', age: '-', skill: '하하', weather: {} },
   { date: '2023-09-27', teamName: 'FC망망', stadium: '훼릭스 풋살클럽', contact: '01030197766', age: '-', skill: '-', weather: {} },
   { date: '2023-10-05', teamName: '신준석', stadium: '훼릭스 풋살클럽', contact: '01045330685', age: '-', skill: '-', weather: {} },
-  { date: '2023-10-12', teamName: '아스팔', stadium: '훼릭스 풋살클럽', contact: '00150532569', age: '30대중후반', skill: '하하', weather: {} },
+  { date: '2023-10-12', teamName: '아스팔', stadium: '훼릭스 풋살클럽', contact: '01050532569', age: '30대중후반', skill: '하하', weather: {} },
   { date: '2023-10-19', teamName: '조감독', stadium: 'W풋살클럽', contact: '01094242362', age: '-', skill: '-', weather: {} },
   { date: '2023-10-26', teamName: 'FC파랑', stadium: '사커스토리', contact: '01066687969', age: '-', skill: '-', weather: {} },
   { date: '2023-11-02', teamName: '무브먼트', stadium: '훼릭스 풋살클럽', contact: '-', age: '-', skill: '-', weather: {} },
   { date: '2023-11-09', teamName: 'FC JSD', stadium: '훼릭스 풋살클럽', contact: '01035834683', age: '-', skill: '-', weather: {} },
-  { date: '2023-11-16', teamName: '아스팔', stadium: 'W풋살클럽', contact: '00150532569', age: '30대중후반', skill: '하하', weather: {} },
+  { date: '2023-11-16', teamName: '아스팔', stadium: 'W풋살클럽', contact: '01050532569', age: '30대중후반', skill: '하하', weather: {} },
   { date: '2023-11-23', teamName: '하준 친구', stadium: 'W풋살클럽', contact: '-', age: '-', skill: '-', weather: {} },
   { date: '2023-11-30', teamName: '하준 친구', stadium: '훼릭스 풋살클럽', contact: '-', age: '-', skill: '-', weather: {} },
   { date: '2023-12-07', teamName: '자체전', stadium: '훼릭스 풋살클럽', contact: '-', age: '-', skill: '-', weather: {} },
@@ -115,22 +117,22 @@ export const MATCH_HISTORY_MERGED: MatchHistoryMergedItem[] = [
   { date: '2025-06-05', teamName: '서정현', stadium: '훼릭스 풋살클럽', contact: '01088939374', age: '30대초중반', skill: '하하하', weather: {} },
   { date: '2025-06-12', teamName: 'FC GOLAZO', stadium: '고양축구센터', contact: '01095316385', age: '-', skill: '-', weather: {} },
   { date: '2025-06-19', teamName: '더에이츠', stadium: '고양불스풋살파크', contact: '01066238872', age: '30대중후반', skill: '하하하', weather: {} },
-  { date: '2025-06-26', teamName: '정채훈', stadium: '훼릭스 풋살클럽', contact: '-', age: '-', skill: '-', weather: {} },
+  { date: '2025-06-26', teamName: '정채훈', stadium: '훼릭스 풋살클럽', contact: '01051361163', age: '30대', skill: '하하하', weather: {} },
   { date: '2025-07-03', teamName: '제로FC', stadium: '훼릭스 풋살클럽', contact: '01066326662', age: '30초중반', skill: '하하하', weather: {} },
   { date: '2025-07-10', teamName: 'FC일레븐', stadium: '고양불스풋살파크', contact: '01088662923', age: '30대중후반', skill: '하하하', weather: {} },
   { date: '2025-07-17', teamName: '구충제', stadium: '훼릭스 풋살클럽', contact: '01055389499', age: '30대중후반', skill: '하', weather: {} },
-  { date: '2025-07-24', teamName: '정채훈', stadium: '훼릭스 풋살클럽', contact: '-', age: '-', skill: '-', weather: {} },
+  { date: '2025-07-24', teamName: '정채훈', stadium: '훼릭스 풋살클럽', contact: '01051361163', age: '30대', skill: '하하하', weather: {} },
   { date: '2025-07-31', teamName: '경칩', stadium: '훼릭스 풋살클럽', contact: '01099389344', age: '30대초', skill: '하하하', weather: {} },
   { date: '2025-08-07', teamName: '스타FC', stadium: '풋볼아카데미', contact: '01091407504', age: '30대~40대', skill: '하하하', weather: {} },
   { date: '2025-08-14', teamName: 'CR아이들', stadium: '훼릭스 풋살클럽', contact: '01020785547', age: '-', skill: '-', weather: {} },
   { date: '2025-08-21', teamName: 'SPP FC', stadium: '훼릭스 풋살클럽', contact: '01054463125', age: '30대~40대', skill: '하하', weather: {} },
-  { date: '2025-08-28', teamName: '정채훈', stadium: '백두풋살장', contact: '-', age: '-', skill: '-', weather: {} },
+  { date: '2025-08-28', teamName: '정채훈', stadium: '백두풋살장', contact: '01051361163', age: '30대', skill: '하하하', weather: {} },
   { date: '2025-09-04', teamName: '이용학', stadium: '훼릭스 풋살클럽', contact: '01096637087', age: '30대중반', skill: '하하하', weather: {} },
   { date: '2025-09-11', teamName: '제로FC', stadium: '훼릭스 풋살클럽', contact: '01066326662', age: '30초중반', skill: '하하하', weather: {} },
-  { date: '2025-09-18', teamName: '고폴', stadium: '훼릭스 풋살클럽', contact: '-', age: '-', skill: '-', weather: {} },
+  { date: '2025-09-18', teamName: '고폴', stadium: '훼릭스 풋살클럽', contact: '01083722131', age: '30대초중반', skill: '하하하', weather: {} },
   { date: '2025-09-25', teamName: '강원영', stadium: '훼릭스 풋살클럽', contact: '01087415281', age: '-', skill: '하하', weather: {} },
   { date: '2025-10-02', teamName: 'DNA FC', stadium: '훼릭스 풋살클럽', contact: '01027015349', age: '30대초', skill: '하하', weather: {} },
-  { date: '2025-10-16', teamName: '고폴', stadium: '훼릭스 풋살클럽', contact: '-', age: '-', skill: '-', weather: {} },
+  { date: '2025-10-16', teamName: '고폴', stadium: '훼릭스 풋살클럽', contact: '01083722131', age: '30대초중반', skill: '하하하', weather: {} },
   { date: '2025-10-23', teamName: '고양스피릿', stadium: '훼릭스 풋살클럽', contact: '01044570888', age: '30대후반', skill: '-', weather: {} },
   { date: '2025-11-06', teamName: 'DNA FC', stadium: '훼릭스 풋살클럽', contact: '01027015349', age: '30대초', skill: '하하', weather: {} },
   { date: '2025-11-13', teamName: 'FC HAS', stadium: '훼릭스 풋살클럽', contact: '01091273018', age: '30대초', skill: 'B-', weather: {} },
@@ -144,12 +146,38 @@ export const MATCH_HISTORY_MERGED: MatchHistoryMergedItem[] = [
   { date: '2026-01-15', teamName: 'PRESTO', stadium: '훼릭스 풋살클럽', contact: '01073973370', age: '30대초중반', skill: '하하하', weather: {} },
   { date: '2026-01-22', teamName: 'DMZ FC', stadium: '훼릭스 풋살클럽', contact: '01020296918', age: '30대중반', skill: '하하하', weather: {} },
   { date: '2026-01-29', teamName: 'L.T FC', stadium: '훼릭스 풋살클럽', contact: '01064193483', age: '30대', skill: '하하', weather: {} },
-  { date: '2026-02-05', teamName: '민호', stadium: '훼릭스 풋살클럽', contact: '-', age: '-', skill: '-', weather: {} },
+  { date: '2026-02-05', teamName: '고민호', stadium: '훼릭스 풋살클럽', contact: '01067620314', age: '30대', skill: '-', weather: {} },
   { date: '2026-02-12', teamName: '정도FC', stadium: '고양불스풋살파크', contact: '01040056069', age: '30대', skill: 'C-', weather: {} },
   { date: '2026-02-19', teamName: '스타FC', stadium: '고양불스풋살파크', contact: '01091407504', age: '30대~40대', skill: '하하하', weather: {} },
 ];
 
-/** 구장명으로 매칭 이력 필터 (최신순) */
+/** 구장명 비교용: 공백 제거 (지도 '고양쌈바풋볼파크' ↔ 이력 '고양 쌈바 풋볼파크' 매칭) */
+function normalizeStadiumName(name: string): string {
+  return name.replace(/\s+/g, '');
+}
+
+/** 구장명으로 매칭 이력 필터 (최신순). 공백 제거한 값으로 비교해 동일 구장 매칭 */
 export function getMatchHistoryByStadium(stadiumName: string): MatchHistoryMergedItem[] {
-  return MATCH_HISTORY_MERGED.filter((m) => m.stadium === stadiumName).sort((a, b) => b.date.localeCompare(a.date));
+  const key = normalizeStadiumName(stadiumName);
+  return MATCH_HISTORY_MERGED.filter((m) => normalizeStadiumName(m.stadium) === key).sort((a, b) =>
+    b.date.localeCompare(a.date)
+  );
+}
+
+/** 팀명으로 매칭 이력 필터 (최신순). 팀 상세 페이지에서 DB 이력 없을 때 fallback용 */
+export function getMatchHistoryByTeamName(teamName: string): MatchHistoryMergedItem[] {
+  const key = teamName.trim();
+  return MATCH_HISTORY_MERGED.filter((m) => m.teamName.trim() === key).sort((a, b) =>
+    b.date.localeCompare(a.date)
+  );
+}
+
+/** 날짜(YYYY-MM-DD)로 매칭 이력 필터. 검색 페이지 캘린더에서 해당일 매칭 팀 표시용 */
+export function getMatchHistoryByDate(date: string): MatchHistoryMergedItem[] {
+  return MATCH_HISTORY_MERGED.filter((m) => m.date === date);
+}
+
+/** 매칭 이력이 있는 날짜(YYYY-MM-DD) 집합. 캘린더에서 액티브 표시용 */
+export function getDatesWithMatchHistory(): Set<string> {
+  return new Set(MATCH_HISTORY_MERGED.map((m) => m.date));
 }

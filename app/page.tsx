@@ -1,34 +1,17 @@
 import Link from 'next/link';
-import Box from '@mui/material/Box';
-import Button from '@mui/material/Button';
-import Container from '@mui/material/Container';
-import Typography from '@mui/material/Typography';
 
 export default function HomePage() {
   return (
-    <Container maxWidth="sm">
-      <Box
-        sx={{
-          minHeight: '100vh',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 2,
-        }}
-      >
-        <Typography component="h1" variant="h4" fontWeight={700}>
-          팀 매칭 관리
-        </Typography>
-        <Box sx={{ display: 'flex', gap: 1 }}>
-          <Button component={Link} href="/login" variant="contained">
-            로그인
-          </Button>
-          <Button component={Link} href="/map" variant="outlined">
-            지도 보기
-          </Button>
-        </Box>
-      </Box>
-    </Container>
+    <div className="min-h-screen flex flex-col items-center justify-center gap-6 px-4">
+      <h1 className="text-3xl font-bold text-center">FS Juntos</h1>
+      <div className="flex gap-3">
+        <Link href="/login" className="btn btn-primary">
+          로그인
+        </Link>
+        <Link href="/map" className="btn btn-outline">
+          지도 보기
+        </Link>
+      </div>
+    </div>
   );
 }

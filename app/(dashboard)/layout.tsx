@@ -2,22 +2,42 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import Box from '@mui/material/Box';
-import Container from '@mui/material/Container';
-import Paper from '@mui/material/Paper';
-import BottomNavigation from '@mui/material/BottomNavigation';
-import BottomNavigationAction from '@mui/material/BottomNavigationAction';
-import HomeIcon from '@mui/icons-material/Home';
-import ListIcon from '@mui/icons-material/List';
-import MapIcon from '@mui/icons-material/Map';
-import PersonIcon from '@mui/icons-material/Person';
 
 const NAV_ITEMS = [
-  { label: 'Home', path: '/home', icon: HomeIcon },
-  { label: 'List', path: '/search', icon: ListIcon },
-  { label: 'Map', path: '/map', icon: MapIcon },
-  { label: 'Mypage', path: '/mypage', icon: PersonIcon },
+  { label: 'Home', path: '/home', icon: 'home' },
+  { label: 'Search', path: '/search', icon: 'search' },
+  { label: 'Map', path: '/map', icon: 'map' },
+  { label: 'Mypage', path: '/mypage', icon: 'user' },
 ] as const;
+
+const ICONS: Record<(typeof NAV_ITEMS)[number]['icon'], React.ReactNode> = {
+  home: (
+    <svg className="size-[1.2em]" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" strokeLinejoin="miter" strokeLinecap="butt" aria-hidden>
+      <polyline points="1 11 12 2 23 11" fill="none" stroke="currentColor" strokeMiterlimit={10} strokeWidth={2} />
+      <path d="m5,13v7c0,1.105.895,2,2,2h10c1.105,0,2-.895,2-2v-7" fill="none" stroke="currentColor" strokeLinecap="square" strokeMiterlimit={10} strokeWidth={2} />
+      <line x1="12" y1="22" x2="12" y2="18" fill="none" stroke="currentColor" strokeLinecap="square" strokeMiterlimit={10} strokeWidth={2} />
+    </svg>
+  ),
+  search: (
+    <svg className="size-[1.2em]" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <circle cx="11" cy="11" r="8" />
+      <path d="m21 21-4.35-4.35" />
+    </svg>
+  ),
+  map: (
+    <svg className="size-[1.2em]" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" />
+      <line x1="8" y1="2" x2="8" y2="18" />
+      <line x1="16" y1="6" x2="16" y2="22" />
+    </svg>
+  ),
+  user: (
+    <svg className="size-[1.2em]" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+      <circle cx="12" cy="7" r="4" />
+    </svg>
+  ),
+};
 
 export default function DashboardLayout({
   children,
@@ -26,56 +46,30 @@ export default function DashboardLayout({
 }) {
   const pathname = usePathname();
 
-  const currentIndex = NAV_ITEMS.findIndex((item) => {
+  const isActive = (item: (typeof NAV_ITEMS)[number]) => {
     if (pathname === item.path) return true;
     if (item.path === '/map' && pathname.startsWith('/team/')) return true;
     if (item.path !== '/home' && pathname.startsWith(item.path)) return true;
     return false;
-  });
-  const navValue = currentIndex >= 0 ? currentIndex : 0;
+  };
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', pb: 8 }}>
-      <Container maxWidth="xl" component="main" sx={{ py: 2 }}>
+    <div className="min-h-screen bg-base-100 pb-20">
+      <main className="w-full px-4 py-6">
         {children}
-      </Container>
-      <Paper
-        elevation={8}
-        sx={{
-          position: 'fixed',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          borderTop: 1,
-          borderColor: 'divider',
-        }}
-      >
-        <BottomNavigation
-          value={navValue}
-          showLabels
-          sx={{
-            '& .MuiBottomNavigationAction-label': { fontWeight: 600 },
-          }}
-        >
-          {NAV_ITEMS.map((item) => (
-            <BottomNavigationAction
-              key={item.path}
-              label={item.label}
-              icon={<item.icon />}
-              component={Link}
-              href={item.path}
-              sx={{
-                color:
-                  pathname === item.path ||
-                  (item.path === '/map' && pathname.startsWith('/team/')) ||
-                  (item.path !== '/home' && pathname.startsWith(item.path))
-                    ? 'primary.main'
-                    : 'text.secondary',
-              }}
-            />
-          ))}
-        </BottomNavigation>
-      </Paper>
-    </Box>
+      </main>
+      <nav className="dock dock-md">
+        {NAV_ITEMS.map((item) => (
+          <Link
+            key={item.path}
+            href={item.path}
+            className={isActive(item) ? 'dock-active text-primary' : ''}
+          >
+            {ICONS[item.icon]}
+            <span className="dock-label">{item.label}</span>
+          </Link>
+        ))}
+      </nav>
+    </div>
   );
 }

@@ -10,43 +10,39 @@ import {
   useNavermaps,
 } from 'react-naver-maps';
 import type { StadiumWithCoords } from '@/lib/types';
-import type { Team } from '@/lib/types';
 import { getStadiumsWithCoords } from '@/lib/data/stadiums';
-import { getTeamsByStadiumId } from '@/lib/data/teams-by-stadium';
-import { getMatchHistoryByStadium } from '@/lib/data/match-history-merged';
-import { getWeatherEmoji } from '@/lib/weather-icons';
-import Box from '@mui/material/Box';
-import Button from '@mui/material/Button';
-import Typography from '@mui/material/Typography';
-import CircularProgress from '@mui/material/CircularProgress';
 
-const DEFAULT_CENTER = { lat: 37.5665, lng: 126.978 }; // 서울
+/** 원당역(경기도 고양시 덕양구) 기준 */
+/** 훼릭스 풋살클럽(경기도 고양시 덕양구 성사동) 기준 */
+const DEFAULT_CENTER = { lat: 37.6474, lng: 126.8615 };
 const clientId = process.env.NEXT_PUBLIC_NAVER_MAP_CLIENT_ID ?? '';
+
+/** 마커 아이콘 44×64px 기준 (위 20px 여백으로 시각 20px 상승) */
+const MARKER_ICON_WIDTH = 44;
+const MARKER_ICON_HEIGHT = 64;
+const MARKER_ICON_ANCHOR_Y = 64; // 아이콘 하단(뾰족한 끝)이 지도 좌표에 맞음
 
 /** Material Design 스타일 마커 SVG (원형 배경 + place 아이콘) → ImageIcon용 data URL */
 function getMaterialMarkerDataUrl(): string {
   const svg = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 44 44">
+    <svg xmlns="http://www.w3.org/2000/svg" width="44" height="64" viewBox="0 0 44 64">
       <defs>
         <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
           <feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity="0.25"/>
         </filter>
       </defs>
-      <circle cx="22" cy="22" r="19" fill="#2563eb" stroke="#fff" stroke-width="3" filter="url(#shadow)"/>
-      <path d="M22 8c-4.2 0-7.5 3.3-7.5 7.5 0 4.4 7.5 12 7.5 12s7.5-7.6 7.5-12C29.5 11.3 26.2 8 22 8zm0 10.2c-1.5 0-2.7-1.2-2.7-2.7s1.2-2.7 2.7-2.7 2.7 1.2 2.7 2.7-1.2 2.7-2.7 2.7z" fill="#fff"/>
+      <g transform="translate(0, 20)">
+        <circle cx="22" cy="22" r="19" fill="#2563eb" stroke="#fff" stroke-width="3" filter="url(#shadow)"/>
+        <path d="M22 8c-4.2 0-7.5 3.3-7.5 7.5 0 4.4 7.5 12 7.5 12s7.5-7.6 7.5-12C29.5 11.3 26.2 8 22 8zm0 10.2c-1.5 0-2.7-1.2-2.7-2.7s1.2-2.7 2.7-2.7 2.7 1.2 2.7 2.7-1.2 2.7-2.7 2.7z" fill="#fff"/>
+      </g>
     </svg>
   `.trim().replace(/\s+/g, ' ');
   return `data:image/svg+xml,${encodeURIComponent(svg)}`;
 }
 
-type WeatherByDate = Record<string, { temp_c: number | null; humidity: number | null; clouds: string | null }>;
-
 type PopupState = {
   position: { lat: number; lng: number };
   stadiumName: string;
-  stadiumId: string;
-  teams: Team[];
-  teamsLoading: boolean;
 } | null;
 
 /** 마커 이미지 URL (정적 SVG 사용 — data URL은 Open API에서 동작 불안정할 수 있음) */
@@ -56,16 +52,24 @@ function getMarkerIconUrl(): string {
 }
 
 /** Material Design 마커 아이콘 (URL 문자열 또는 ImageIcon. Open API는 문자열을 더 안정적으로 처리) */
-function getMaterialMarkerIcon(navermaps: typeof naver.maps): string | naver.maps.ImageIcon | Record<string, unknown> {
+function getMaterialMarkerIcon(navermaps: {
+  Size: new (w: number, h: number) => unknown;
+  Point: new (x: number, y: number) => unknown;
+  ImageIcon?: new (o: { url: string; size: unknown; anchor: unknown }) => unknown;
+}): string | Record<string, unknown> {
   const url = getMarkerIconUrl() || getMaterialMarkerDataUrl();
   if (!url) return '';
   const Size = navermaps.Size;
   const Point = navermaps.Point;
-  const sizeObj = typeof Size === 'function' ? new Size(44, 44) : { width: 44, height: 44 };
-  const anchorObj = typeof Point === 'function' ? new Point(22, 44) : { x: 22, y: 44 };
+  const sizeObj = typeof Size === 'function'
+    ? new Size(MARKER_ICON_WIDTH, MARKER_ICON_HEIGHT)
+    : { width: MARKER_ICON_WIDTH, height: MARKER_ICON_HEIGHT };
+  const anchorObj = typeof Point === 'function'
+    ? new Point(MARKER_ICON_WIDTH / 2, MARKER_ICON_ANCHOR_Y)
+    : { x: MARKER_ICON_WIDTH / 2, y: MARKER_ICON_ANCHOR_Y };
   try {
     if (typeof navermaps.ImageIcon === 'function') {
-      return new navermaps.ImageIcon({ url, size: sizeObj, anchor: anchorObj });
+      return new navermaps.ImageIcon({ url, size: sizeObj, anchor: anchorObj }) as Record<string, unknown>;
     }
   } catch (_) {
     // fallback
@@ -102,23 +106,46 @@ function StadiumMarkers({
   );
 }
 
-/** 지도 컨텍스트 안에서 InfoWindow를 open/close (react-naver-maps InfoWindow는 autoMount=false라 직접 open 호출 필요) */
-function PopupController({ popup, weatherByDate }: { popup: PopupState; weatherByDate: WeatherByDate }) {
+/** 지도 컨텍스트 안에서 InfoWindow를 open/close (구장명만 표시) */
+function PopupController({ popup }: { popup: PopupState }) {
   const map = useMap();
   const navermaps = useNavermaps();
-  const infoWindowRef = useRef<naver.maps.InfoWindow | null>(null);
+  const infoWindowRef = useRef<{ setContent: (c: string) => void; open: (m: unknown, c: unknown) => void; close: () => void } | null>(null);
 
   useEffect(() => {
     if (!map || !navermaps) return;
     if (popup) {
-      const content = buildPopupContent(popup, weatherByDate);
+      const content = buildPopupContent(popup.stadiumName);
       if (!infoWindowRef.current) {
-        infoWindowRef.current = new navermaps.InfoWindow({ content, maxWidth: 320 });
+        const Size = navermaps.Size;
+        const anchorSize = typeof Size === 'function' ? new Size(15, 15) : { width: 15, height: 15 };
+        infoWindowRef.current = new navermaps.InfoWindow({
+          content,
+          maxWidth: 280,
+          anchorSize, // 하단 화살표(말풍선 꼬리) 크기 — 기본(30,30)의 절반
+        });
       } else {
         infoWindowRef.current.setContent(content);
       }
       const coord = new navermaps.LatLng(popup.position.lat, popup.position.lng);
-      infoWindowRef.current.open(map, coord);
+      // 화살표 길이 유지: 앵커만 20px 위 지도 좌표로 열어 팝업 위치만 위로 이동
+      let openCoord: unknown = coord;
+      try {
+        const proj = map.getProjection?.();
+        if (proj?.fromCoordToOffset && proj?.fromOffsetToCoord) {
+          const offset = proj.fromCoordToOffset(coord);
+          if (offset && typeof offset.x === 'number' && typeof offset.y === 'number') {
+            const Point = navermaps.Point;
+            const upOffset = typeof Point === 'function'
+              ? new Point(offset.x, offset.y - 20)
+              : { x: offset.x, y: offset.y - 20 };
+            openCoord = proj.fromOffsetToCoord(upOffset) ?? coord;
+          }
+        }
+      } catch (_) {
+        // 변환 실패 시 원래 좌표 사용
+      }
+      if (infoWindowRef.current) infoWindowRef.current.open(map, openCoord);
     } else {
       if (infoWindowRef.current) {
         infoWindowRef.current.close();
@@ -127,17 +154,16 @@ function PopupController({ popup, weatherByDate }: { popup: PopupState; weatherB
     return () => {
       if (infoWindowRef.current) infoWindowRef.current.close();
     };
-  }, [popup, weatherByDate, map, navermaps]);
+  }, [popup, map, navermaps]);
 
   return null;
 }
 
-function MapContent() {
+function MapContent({ onStadiumSelect }: { onStadiumSelect?: (stadiumName: string | null) => void }) {
   const [stadiums, setStadiums] = useState<StadiumWithCoords[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [popup, setPopup] = useState<PopupState>(null);
-  const [weatherByDate, setWeatherByDate] = useState<WeatherByDate>({});
 
   const loadStadiums = useCallback(async () => {
     setFetchError(null);
@@ -163,90 +189,23 @@ function MapContent() {
     loadStadiums();
   }, [loadStadiums]);
 
-  useEffect(() => {
-    if (!popup) {
-      setWeatherByDate({});
-      return;
-    }
-    const matchHistory = getMatchHistoryByStadium(popup.stadiumName);
-    const dates = [...new Set(matchHistory.map((m) => m.date))];
-    const { lat, lng } = popup.position;
-    const base = typeof window !== 'undefined' ? window.location.origin : '';
-    let cancelled = false;
-    Promise.allSettled(
-      dates.map(async (date) => {
-        const res = await fetch(`${base}/api/weather?lat=${lat}&lng=${lng}&date=${date}`);
-        const data = await res.json();
-        return { date, ...data };
-      })
-    ).then((results) => {
-      if (cancelled) return;
-      const next: WeatherByDate = {};
-      results.forEach((r) => {
-        if (r.status === 'fulfilled' && r.value?.date) {
-          const { date, temp_c, humidity, clouds } = r.value;
-          next[date] = { temp_c: temp_c ?? null, humidity: humidity ?? null, clouds: clouds ?? null };
-        }
-      });
-      setWeatherByDate(next);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [popup?.stadiumName, popup?.position.lat, popup?.position.lng]);
-
-  const handleMarkerClick = useCallback(async (stadium: StadiumWithCoords) => {
+  const handleMarkerClick = useCallback((stadium: StadiumWithCoords) => {
     setPopup({
       position: { lat: stadium.lat, lng: stadium.lng },
       stadiumName: stadium.name,
-      stadiumId: stadium.id,
-      teams: [],
-      teamsLoading: true,
     });
-    try {
-      const teams = await getTeamsByStadiumId(stadium.id);
-      setPopup((prev) =>
-        prev
-          ? { ...prev, teams, teamsLoading: false }
-          : null
-      );
-    } catch (e) {
-      console.error(e);
-      setPopup((prev) =>
-        prev ? { ...prev, teams: [], teamsLoading: false } : null
-      );
-    }
-  }, []);
+    onStadiumSelect?.(stadium.name);
+  }, [onStadiumSelect]);
 
   return (
-    <Box sx={{ position: 'relative', width: '100%', height: '70vh', minHeight: 400 }}>
+    <div className="relative w-full h-[70vh] min-h-[400px]">
       {fetchError && (
-        <Box
-          sx={{
-            position: 'absolute',
-            top: 16,
-            left: '50%',
-            transform: 'translateX(-50%)',
-            zIndex: 10,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 1.5,
-            bgcolor: 'background.paper',
-            border: '1px solid',
-            borderColor: 'error.main',
-            color: 'error.dark',
-            px: 2,
-            py: 1.5,
-            borderRadius: 2,
-            boxShadow: 2,
-            maxWidth: '90%',
-          }}
-        >
-          <Typography variant="body2" sx={{ flex: 1 }}>{fetchError}</Typography>
-          <Button size="small" variant="outlined" onClick={loadStadiums} sx={{ color: 'inherit', borderColor: 'currentColor' }}>
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 flex items-center gap-3 bg-base-100 border border-error text-error px-4 py-3 rounded-xl shadow-lg max-w-[90%]">
+          <span className="text-sm flex-1">{fetchError}</span>
+          <button type="button" className="btn btn-outline btn-sm border-current text-current" onClick={loadStadiums}>
             다시 시도
-          </Button>
-        </Box>
+          </button>
+        </div>
       )}
       <MapContainer
         style={{ width: '100%', height: '100%', borderRadius: 12 }}
@@ -259,94 +218,24 @@ function MapContent() {
           zoomControlOptions={{ position: 1 }}
         >
           {loading ? null : <StadiumMarkers stadiums={stadiums} onMarkerClick={handleMarkerClick} />}
-          <PopupController popup={popup} weatherByDate={weatherByDate} />
+          <PopupController popup={popup} />
         </NaverMap>
       </MapContainer>
       {loading && !fetchError && (
-        <Box
-          sx={{
-            position: 'absolute',
-            top: 16,
-            left: '50%',
-            transform: 'translateX(-50%)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 1,
-            bgcolor: 'background.paper',
-            px: 2,
-            py: 1,
-            borderRadius: 2,
-            boxShadow: 1,
-          }}
-        >
-          <CircularProgress size={20} />
-          <Typography variant="body2">구장 목록 불러오는 중</Typography>
-        </Box>
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-base-200/80 rounded-xl">
+          <span className="loading loading-ball loading-lg text-primary" />
+        </div>
       )}
-    </Box>
+    </div>
   );
 }
 
-function buildPopupContent(
-  popup: { stadiumName: string; teams: Team[]; teamsLoading: boolean },
-  weatherByDate: WeatherByDate = {}
-): string {
-  const { stadiumName, teams, teamsLoading } = popup;
-  const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
-  const teamItems =
-    teamsLoading
-      ? '<li style="color:#64748b;">불러오는 중...</li>'
-      : teams.length === 0
-        ? ''
-        : teams
-            .map(
-              (t) =>
-                `<li style="margin-bottom:4px;"><a href="${baseUrl}/team/${t.id}" style="color:#2563eb;font-weight:500;text-decoration:none;">${escapeHtml(t.name)}</a></li>`
-            )
-            .join('');
-
-  const matchHistory = getMatchHistoryByStadium(stadiumName);
-  const historyItems = matchHistory.length === 0
-    ? '<li style="padding:6px 0;list-style:none;color:#64748b;font-size:12px;">매칭 이력 없음</li>'
-    : matchHistory.map(
-        (m) => {
-          const w = weatherByDate[m.date] ?? m.weather;
-          const weatherParts: string[] = [];
-          if (w) {
-            if (w.temp_c != null) weatherParts.push(`${w.temp_c}°C`);
-            if (w.humidity != null) weatherParts.push(`습도 ${w.humidity}%`);
-            if (w.clouds) weatherParts.push(`${getWeatherEmoji(w.clouds)} ${escapeHtml(w.clouds)}`);
-          }
-          const weatherLine = weatherParts.length ? `<div style="font-size:11px;color:#64748b;margin-top:2px;">${weatherParts.join(' / ')}</div>` : '';
-          const contactLine = [m.contact, m.age, m.skill].filter(Boolean).length
-            ? `<div style="font-size:11px;color:#64748b;margin-top:2px;">${[m.contact && escapeHtml(m.contact), m.age && escapeHtml(m.age), m.skill && escapeHtml(m.skill)].filter(Boolean).join(' / ')}</div>`
-            : '';
-          return `
-    <li style="padding:6px 0;border-bottom:1px solid #e2e8f0;list-style:none;">
-      <div style="font-size:13px;font-weight:500;">${formatDate(m.date)} / ${escapeHtml(m.teamName)}</div>
-      ${contactLine}
-      ${weatherLine}
-    </li>
-  `;
-        }
-      ).join('');
-
+function buildPopupContent(stadiumName: string): string {
   return `
-    <div style="padding:8px 10px;font-family:Pretendard,Noto Sans KR,sans-serif;min-width:240px;max-width:320px;">
-      <strong style="font-size:14px;">${escapeHtml(stadiumName)}</strong>
-      <p style="margin:10px 0 6px;font-size:12px;color:#64748b;font-weight:600;">매칭 이력 (20시 기준 날씨)</p>
-      <ul style="margin:0;padding:0;">${historyItems}</ul>
-      ${teamItems ? `<p style="margin:10px 0 4px;font-size:12px;color:#64748b;font-weight:600;">매칭한 팀</p><ul style="margin:0;padding-left:18px;font-size:13px;">${teamItems}</ul>` : ''}
+    <div style="padding:5px;font-family:Pretendard,Noto Sans KR,sans-serif;font-size:12px;font-weight:700;">
+      ${escapeHtml(stadiumName)}
     </div>
   `;
-}
-
-function formatDate(isoDate: string): string {
-  try {
-    return new Date(isoDate + 'Z').toLocaleDateString('ko-KR', { year: 'numeric', month: 'short', day: 'numeric' });
-  } catch {
-    return isoDate;
-  }
 }
 
 function escapeHtml(s: string): string {
@@ -358,29 +247,24 @@ function escapeHtml(s: string): string {
     .replace(/'/g, '&#39;');
 }
 
-export default function StadiumMap() {
+type StadiumMapProps = {
+  onStadiumSelect?: (stadiumName: string | null) => void;
+};
+
+export default function StadiumMap({ onStadiumSelect }: StadiumMapProps) {
   if (!clientId) {
     return (
-      <Box
-        sx={{
-          height: 400,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          bgcolor: 'action.hover',
-          borderRadius: 2,
-        }}
-      >
-        <Typography color="text.secondary">
+      <div className="h-[400px] flex items-center justify-center bg-base-200 rounded-xl">
+        <span className="text-base-content/70">
           NEXT_PUBLIC_NAVER_MAP_CLIENT_ID를 설정해주세요.
-        </Typography>
-      </Box>
+        </span>
+      </div>
     );
   }
 
   return (
     <NavermapsProvider ncpKeyId={clientId}>
-      <MapContent />
+      <MapContent onStadiumSelect={onStadiumSelect} />
     </NavermapsProvider>
   );
 }

@@ -17,6 +17,9 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import dayjs, { type Dayjs } from 'dayjs';
+import 'dayjs/locale/ko';
+
+dayjs.locale('ko');
 
 type TeamOption = {
   id: string;
