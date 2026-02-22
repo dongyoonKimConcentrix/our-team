@@ -4,11 +4,12 @@ import { createServerSupabaseClient } from '@/lib/supabase/server';
 /** 팀 생성 (관리자 매칭 등록에서 새 상대팀 등록용) */
 export async function POST(request: NextRequest) {
   const body = await request.json();
-  const { name, age_range, skill_level, contacts } = body as {
+  const { name, age_range, skill_level, contacts, is_blacklisted } = body as {
     name: string;
     age_range?: string | null;
     skill_level?: string | null;
     contacts?: Array<{ type?: string; value?: string }>;
+    is_blacklisted?: boolean;
   };
   const trimmedName = (name ?? '').trim();
   if (!trimmedName) {
@@ -22,6 +23,7 @@ export async function POST(request: NextRequest) {
       age_range: age_range?.trim() || null,
       skill_level: skill_level?.trim() || null,
       contacts: Array.isArray(contacts) ? contacts : [],
+      is_blacklisted: Boolean(is_blacklisted),
     })
     .select('id, name')
     .single();

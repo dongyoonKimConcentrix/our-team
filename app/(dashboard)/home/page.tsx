@@ -52,17 +52,23 @@ export default function HomePage() {
     stadium_name: string | null;
     team: { id: string; name: string; age_range?: string | null; skill_level?: string | null; contacts?: Array<{ type?: string; value?: string }> } | null;
   }>>([]);
+  /** 매칭 데이터 로드 완료 후에만 달력 그리기 (has-match 등 class가 안정적으로 붙도록) */
+  const [matchDataReady, setMatchDataReady] = useState(false);
   /** Cally가 getDayParts를 읽도록 캘린더를 한 번 리마운트 (key 변경) */
   const [calendarKey, setCalendarKey] = useState(0);
   const calendarRef = useRef<HTMLElement & { value?: string; getDayParts?: (date: Date) => string }>(null);
 
-  /** API 매칭 목록 로드 (캘린더 점 + 날짜별 목록용) */
+  /** API 매칭 목록 로드 (캘린더 점 + 날짜별 목록용). 로드 완료 후 달력 렌더 허용 */
   useEffect(() => {
     let cancelled = false;
     fetch('/api/matches?limit=300')
       .then((res) => res.json())
       .then((data: unknown) => {
         if (!cancelled && Array.isArray(data)) setApiMatches(data as typeof apiMatches);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setMatchDataReady(true);
       });
     return () => { cancelled = true; };
   }, []);
@@ -198,24 +204,30 @@ export default function HomePage() {
           </span>
         </div>
 
-        {/* Cally 캘린더 */}
-        <calendar-date
-          key={calendarKey}
-          ref={setCalendarRef}
-          class="cally w-full bg-base-100 border border-base-300 shadow-lg rounded-box mb-6"
-          value={selectedDate ?? ''}
-          locale="ko-KR"
-        >
-          {/* @ts-expect-error slot은 Cally 웹 컴포넌트용 */}
-          <svg aria-label="Previous" className="fill-current size-4" slot="previous" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-            <path fill="currentColor" d="M15.75 19.5 8.25 12l7.5-7.5" />
-          </svg>
-          {/* @ts-expect-error slot은 Cally 웹 컴포넌트용 */}
-          <svg aria-label="Next" className="fill-current size-4" slot="next" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-            <path fill="currentColor" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
-          </svg>
-          <calendar-month />
-        </calendar-date>
+        {/* 매칭 데이터 로드 후에만 달력 렌더 (has-match 등 class 안정 적용) */}
+        {!matchDataReady ? (
+          <div className="cally w-full bg-base-100 border border-base-300 shadow-lg rounded-box mb-6 min-h-[280px] flex items-center justify-center">
+            <span className="loading loading-spinner loading-lg text-primary" />
+          </div>
+        ) : (
+          <calendar-date
+            key={calendarKey}
+            ref={setCalendarRef}
+            class="cally w-full bg-base-100 border border-base-300 shadow-lg rounded-box mb-6"
+            value={selectedDate ?? ''}
+            locale="ko-KR"
+          >
+            {/* @ts-expect-error slot은 Cally 웹 컴포넌트용 */}
+            <svg aria-label="Previous" className="fill-current size-4" slot="previous" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+              <path fill="currentColor" d="M15.75 19.5 8.25 12l7.5-7.5" />
+            </svg>
+            {/* @ts-expect-error slot은 Cally 웹 컴포넌트용 */}
+            <svg aria-label="Next" className="fill-current size-4" slot="next" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+              <path fill="currentColor" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+            </svg>
+            <calendar-month />
+          </calendar-date>
+        )}
 
         {/* 선택한 날짜의 매칭 팀 (20시 기준: 현재가 20시 이전이면 '매칭 예정', 이후면 '매칭 이력') */}
         {sectionMeta && selectedDate && (
@@ -236,9 +248,15 @@ export default function HomePage() {
                     <div className="flex flex-col py-2 px-3 items-start w-full bg-base-200 rounded-box [li.active_&]:!bg-base-200 [li.active_&]:!text-base-content [&:active]:!bg-base-200 [&:active]:!text-base-content">
                       <span className="text-sm text-base-content">매칭날짜 : {formatDateKo(m.date)}</span>
                       <MatchWeather date={m.date} fallback={m.weather} />
-                      <span className="text-base-content text-sm">구장 : {m.stadium || '-'}</span>
+                      <span className="text-base-content text-sm">
+                        구장 : {m.stadium && m.stadium !== '-' ? (
+                          <Link href={`/map?stadium=${encodeURIComponent(m.stadium)}`} className="link font-bold">{m.stadium}</Link>
+                        ) : (
+                          (m.stadium || '-')
+                        )}
+                      </span>
                       <span className="font-bold flex items-center gap-2 flex-wrap">
-                        팀명 : <Link href={`/team?name=${encodeURIComponent(m.teamName)}`} className="link link-hover">{m.teamName}</Link>
+                        팀명 : <Link href={`/team?name=${encodeURIComponent(m.teamName)}`} className="link">{m.teamName}</Link>
                         {m.isBlacklisted && <span className="badge badge-neutral badge-sm">블랙리스트</span>}
                       </span>
                       <span className="text-base-content text-sm">연락처: {formatContactValue(m.contact)}</span>

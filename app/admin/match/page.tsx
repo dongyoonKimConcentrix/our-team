@@ -21,6 +21,7 @@ type MatchItem = {
     age_range?: string | null;
     skill_level?: string | null;
     contacts?: Array<{ type?: string; value?: string }>;
+    is_blacklisted?: boolean;
   } | null;
 };
 
@@ -40,6 +41,7 @@ export default function AdminMatchListPage() {
   const [matches, setMatches] = useState<MatchItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [togglingTeamId, setTogglingTeamId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const listRef = useRef<HTMLUListElement>(null);
@@ -73,6 +75,32 @@ export default function AdminMatchListPage() {
       alert('삭제에 실패했습니다.');
     } finally {
       setDeletingId(null);
+    }
+  };
+
+  const handleBlacklistToggle = async (teamId: string, current: boolean) => {
+    setTogglingTeamId(teamId);
+    try {
+      const res = await fetch(`/api/teams/${teamId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_blacklisted: !current }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data?.error ?? '변경 실패');
+      }
+      setMatches((prev) =>
+        prev.map((m) =>
+          m.team?.id === teamId
+            ? { ...m, team: m.team ? { ...m.team, is_blacklisted: !current } : null }
+            : m
+        )
+      );
+    } catch (e) {
+      alert(e instanceof Error ? e.message : '블랙리스트 변경에 실패했습니다.');
+    } finally {
+      setTogglingTeamId(null);
     }
   };
 
@@ -164,6 +192,9 @@ export default function AdminMatchListPage() {
                       <p>
                         <span className="text-base-content/70">상대 </span>
                         <span className="font-medium">{teamName}</span>
+                        {m.team?.is_blacklisted && (
+                          <span className="badge badge-error badge-sm ml-1">블랙리스트</span>
+                        )}
                       </p>
                       <p className="text-base-content/70">
                         나이 {age} · 실력 {skill}
@@ -173,7 +204,21 @@ export default function AdminMatchListPage() {
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 pt-1 border-t border-base-300">
+                  <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-base-300">
+                    {m.team?.id && (
+                      <label className="flex items-center gap-1.5 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          className="checkbox checkbox-sm checkbox-error"
+                          checked={m.team?.is_blacklisted ?? false}
+                          disabled={togglingTeamId === m.team.id}
+                          onChange={() =>
+                            handleBlacklistToggle(m.team!.id, m.team?.is_blacklisted ?? false)
+                          }
+                        />
+                        <span className="text-sm">블랙리스트</span>
+                      </label>
+                    )}
                     <Link href={`/admin/match/${m.id}/edit`} className="btn btn-sm btn-primary">
                       수정
                     </Link>

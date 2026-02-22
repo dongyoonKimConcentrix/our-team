@@ -105,7 +105,7 @@ export default function AdminLayout({
     <div className="drawer drawer-end">
       <input id="drawer-menu-admin" type="checkbox" className="drawer-toggle" />
       <div className="drawer-content min-h-screen bg-base-100 flex flex-col">
-        <header className="navbar fixed top-0 left-0 right-0 z-50 bg-base-100 shadow-sm">
+        <header className="navbar fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-[720px] z-50 bg-base-100 shadow-sm">
           <div className="navbar-start flex-1 min-w-0">
             {!isAdminHome && (
               <button

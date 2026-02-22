@@ -8,8 +8,12 @@ const NAV_ITEMS = [
   { label: 'Home', path: '/home', icon: 'home' },
   { label: 'Search', path: '/search', icon: 'search' },
   { label: 'Map', path: '/map', icon: 'map' },
+  { label: 'Member', path: '/member', icon: 'member' },
   { label: 'Mypage', path: '/mypage', icon: 'user' },
 ] as const;
+
+/** dock(하단 네비)에는 Member 제외 */
+const DOCK_ITEMS = NAV_ITEMS.filter((item) => item.path !== '/member');
 
 const ICONS: Record<(typeof NAV_ITEMS)[number]['icon'], React.ReactNode> = {
   home: (
@@ -36,6 +40,14 @@ const ICONS: Record<(typeof NAV_ITEMS)[number]['icon'], React.ReactNode> = {
     <svg className="size-[1.2em]" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
       <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
       <circle cx="12" cy="7" r="4" />
+    </svg>
+  ),
+  member: (
+    <svg className="size-[1.2em]" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
     </svg>
   ),
 };
@@ -68,7 +80,7 @@ export default function DashboardLayout({
     <div className="drawer drawer-end">
       <input id="drawer-menu-dashboard" type="checkbox" className="drawer-toggle" />
       <div className="drawer-content min-h-screen bg-base-100 pb-20 flex flex-col">
-        <header className="navbar fixed top-0 left-0 right-0 z-50 bg-base-100 shadow-sm">
+        <header className="navbar fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-[720px] z-50 bg-base-100 shadow-sm">
           <div className="navbar-start flex-1 min-w-0">
             {!isHome && (
               <button
@@ -105,7 +117,7 @@ export default function DashboardLayout({
           {children}
         </main>
         <nav className="dock dock-md">
-          {NAV_ITEMS.map((item) => (
+          {DOCK_ITEMS.map((item) => (
             <Link
               key={item.path}
               href={item.path}

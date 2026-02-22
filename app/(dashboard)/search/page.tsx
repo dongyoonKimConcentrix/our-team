@@ -96,7 +96,7 @@ export default function SearchPage() {
                     className="flex flex-col py-2 px-3 items-start w-full [li.active_&]:!bg-base-200/60 [li.active_&]:!text-base-content [&:active]:!bg-base-200/60 [&:active]:!text-base-content hover:bg-base-200/60"
                   >
                     <span className="font-bold flex items-center gap-2 flex-wrap">
-                      팀명 : <span className="link link-hover">{team.name}</span>
+                      팀명 : <span className="link">{team.name}</span>
                       {team.is_blacklisted && <span className="badge badge-neutral badge-sm">블랙리스트</span>}
                     </span>
                     <span className="text-base-content/80 text-sm">연락처: {contactsText(team.contacts)}</span>

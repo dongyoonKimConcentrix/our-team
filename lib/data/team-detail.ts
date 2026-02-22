@@ -1,12 +1,4 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { formatMonthDayKo } from '@/lib/format-date';
-
-export type MannerScorePoint = {
-  matchDate: string;
-  matchId: string;
-  score: number;
-  label: string;
-};
 
 export type MatchHistoryItem = {
   id: string;
@@ -18,7 +10,7 @@ export type MatchHistoryItem = {
 export type EvaluationWithEvaluator = {
   id: string;
   match_id: string;
-  rating: number;
+  rating: number | null;
   comment: string | null;
   created_at: string;
   evaluator_id: string;
@@ -27,51 +19,24 @@ export type EvaluationWithEvaluator = {
   evaluator_deleted_at: string | null;
 };
 
-/** 최근 5경기 매너 점수(평균 별점) 추이 */
-export async function getTeamMannerScoresLast5(
+export type TeamRatingsSummary = {
+  average: number;
+  count: number;
+};
+
+/** 팀별 별점 집계 (team_ratings 기준, 1인 1팀 1건) */
+export async function getTeamRatingsSummary(
   supabase: SupabaseClient,
   teamId: string
-): Promise<MannerScorePoint[]> {
+): Promise<TeamRatingsSummary> {
   const { data, error } = await supabase
-    .from('evaluations')
-    .select('match_id, rating, matches(match_date)')
-    .eq('target_team_id', teamId)
-    .order('created_at', { ascending: false });
+    .from('team_ratings')
+    .select('rating')
+    .eq('target_team_id', teamId);
 
-  if (error) return [];
-
-  type Row = {
-    match_id: string;
-    rating: number;
-    matches: { match_date: string } | { match_date: string }[] | null;
-  };
-  const rows = (data ?? []) as Row[];
-
-  const byMatch = new Map<string, { sum: number; count: number; date: string }>();
-  for (const r of rows) {
-    const match = r.matches;
-    const date = Array.isArray(match) ? match[0]?.match_date ?? '' : match?.match_date ?? '';
-    const cur = byMatch.get(r.match_id);
-    if (cur) {
-      cur.sum += r.rating;
-      cur.count += 1;
-    } else {
-      byMatch.set(r.match_id, { sum: r.rating, count: 1, date });
-    }
-  }
-
-  const points: MannerScorePoint[] = Array.from(byMatch.entries())
-    .map(([matchId, v]) => ({
-      matchId,
-      matchDate: v.date,
-      score: Math.round((v.sum / v.count) * 10) / 10,
-      label: v.date ? formatMonthDayKo(v.date) : '-',
-    }))
-    .sort((a, b) => b.matchDate.localeCompare(a.matchDate))
-    .slice(0, 5)
-    .reverse();
-
-  return points;
+  if (error || !data?.length) return { average: 0, count: 0 };
+  const sum = (data as { rating: number }[]).reduce((s, r) => s + r.rating, 0);
+  return { average: sum / data.length, count: data.length };
 }
 
 /** 팀의 매칭 이력 (날짜, 구장, 날씨) */
@@ -152,7 +117,7 @@ export async function getTeamEvaluationsWithEvaluator(
   type Row = {
     id: string;
     match_id: string;
-    rating: number;
+    rating: number | null;
     comment: string | null;
     created_at: string;
     evaluator_id: string;

@@ -49,10 +49,11 @@ export default function NewMatchPage() {
   const [teamOptions, setTeamOptions] = useState<TeamOption[]>([]);
   const [teamInput, setTeamInput] = useState('');
   const [selectedTeam, setSelectedTeam] = useState<TeamOption | null>(null);
-  /** 새 팀으로 등록할 때 입력하는 나이·실력·연락처 (기존 팀 선택 시에는 사용 안 함) */
+  /** 새 팀으로 등록할 때 입력하는 나이·실력·연락처·블랙리스트 (기존 팀 선택 시에는 사용 안 함) */
   const [newTeamAge, setNewTeamAge] = useState('');
   const [newTeamSkill, setNewTeamSkill] = useState('');
   const [newTeamContact, setNewTeamContact] = useState('');
+  const [newTeamBlacklist, setNewTeamBlacklist] = useState(false);
   const [stadiums, setStadiums] = useState<StadiumOption[]>([]);
   const [matchDate, setMatchDate] = useState('');
   const [stadiumId, setStadiumId] = useState('');
@@ -140,6 +141,7 @@ export default function NewMatchPage() {
             contacts: newTeamContact.trim()
               ? [{ type: 'phone', value: newTeamContact.trim().replace(/\D/g, '') }]
               : [],
+            is_blacklisted: newTeamBlacklist,
           }),
         });
         const createData = await createRes.json();
@@ -378,6 +380,17 @@ export default function NewMatchPage() {
                     inputMode="numeric"
                     maxLength={13}
                   />
+                </div>
+                <div className="form-control sm:col-span-3">
+                  <label className="label cursor-pointer justify-start gap-2">
+                    <input
+                      type="checkbox"
+                      className="checkbox checkbox-error"
+                      checked={newTeamBlacklist}
+                      onChange={(e) => setNewTeamBlacklist(e.target.checked)}
+                    />
+                    <span className="label-text">블랙리스트</span>
+                  </label>
                 </div>
               </div>
             )}

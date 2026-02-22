@@ -159,11 +159,18 @@ function PopupController({ popup }: { popup: PopupState }) {
   return null;
 }
 
-function MapContent({ onStadiumSelect }: { onStadiumSelect?: (stadiumName: string | null) => void }) {
+function MapContent({
+  onStadiumSelect,
+  initialStadiumName,
+}: {
+  onStadiumSelect?: (stadiumName: string | null) => void;
+  initialStadiumName?: string | null;
+}) {
   const [stadiums, setStadiums] = useState<StadiumWithCoords[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [popup, setPopup] = useState<PopupState>(null);
+  const initialAppliedRef = useRef(false);
 
   const loadStadiums = useCallback(async () => {
     setFetchError(null);
@@ -188,6 +195,22 @@ function MapContent({ onStadiumSelect }: { onStadiumSelect?: (stadiumName: strin
   useEffect(() => {
     loadStadiums();
   }, [loadStadiums]);
+
+  /** URL 등으로 전달된 초기 구장명: 구장 로드 후 해당 마커 팝업 열기 + 리스트 선택 */
+  useEffect(() => {
+    if (loading || !initialStadiumName || initialAppliedRef.current || stadiums.length === 0) return;
+    const name = initialStadiumName.trim();
+    if (!name) return;
+    const stadium = stadiums.find((s) => s.name === name || s.name?.trim() === name);
+    if (stadium) {
+      initialAppliedRef.current = true;
+      setPopup({
+        position: { lat: stadium.lat, lng: stadium.lng },
+        stadiumName: stadium.name,
+      });
+      onStadiumSelect?.(stadium.name);
+    }
+  }, [loading, initialStadiumName, stadiums, onStadiumSelect]);
 
   const handleMarkerClick = useCallback((stadium: StadiumWithCoords) => {
     setPopup({
@@ -249,9 +272,11 @@ function escapeHtml(s: string): string {
 
 type StadiumMapProps = {
   onStadiumSelect?: (stadiumName: string | null) => void;
+  /** 이 구장명으로 진입 시 해당 마커 팝업 표시 (예: /map?stadium=구장명) */
+  initialStadiumName?: string | null;
 };
 
-export default function StadiumMap({ onStadiumSelect }: StadiumMapProps) {
+export default function StadiumMap({ onStadiumSelect, initialStadiumName }: StadiumMapProps) {
   if (!clientId) {
     return (
       <div className="h-[400px] flex items-center justify-center bg-base-200 rounded-xl">
@@ -264,7 +289,7 @@ export default function StadiumMap({ onStadiumSelect }: StadiumMapProps) {
 
   return (
     <NavermapsProvider ncpKeyId={clientId}>
-      <MapContent onStadiumSelect={onStadiumSelect} />
+      <MapContent onStadiumSelect={onStadiumSelect} initialStadiumName={initialStadiumName} />
     </NavermapsProvider>
   );
 }

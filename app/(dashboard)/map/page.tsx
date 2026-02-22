@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
+import { useState, useMemo, useRef, useCallback, useEffect, Suspense } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { getMatchHistoryByStadium } from '@/lib/data/match-history-merged';
 import { formatContactValue } from '@/lib/format-contact';
 import { formatDateKo } from '@/lib/format-date';
@@ -20,9 +21,14 @@ const StadiumMap = dynamic(() => import('@/components/StadiumMap'), {
 
 const PAGE_SIZE = 5;
 
-export default function MapPage() {
-  const [selectedStadiumName, setSelectedStadiumName] = useState<string | null>(null);
+function MapPageContent() {
+  const searchParams = useSearchParams();
+  const stadiumFromUrl = searchParams.get('stadium');
+  const [selectedStadiumName, setSelectedStadiumName] = useState<string | null>(() =>
+    stadiumFromUrl ? decodeURIComponent(stadiumFromUrl) : null
+  );
   const [currentPage, setCurrentPage] = useState(1);
+  const initialStadiumApplied = useRef(!!stadiumFromUrl);
 
   const matchHistory = useMemo(
     () => (selectedStadiumName ? getMatchHistoryByStadium(selectedStadiumName) : []),
@@ -60,6 +66,16 @@ export default function MapPage() {
     };
   }, []);
 
+  /** URL ?stadium= 구장명으로 들어온 경우 한 번만 1초 뒤 리스트 상단으로 스크롤 */
+  useEffect(() => {
+    if (!stadiumFromUrl || !initialStadiumApplied.current) return;
+    initialStadiumApplied.current = false;
+    const t = setTimeout(() => {
+      matchHistoryRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 1000);
+    return () => clearTimeout(t);
+  }, [stadiumFromUrl]);
+
   return (
     <div className="max-w-full">
       <h1 className="text-2xl font-bold mb-1">구장 지도</h1>
@@ -68,7 +84,10 @@ export default function MapPage() {
       </p>
 
       <div className="w-full rounded-xl overflow-hidden">
-        <StadiumMap onStadiumSelect={handleStadiumSelect} />
+        <StadiumMap
+          onStadiumSelect={handleStadiumSelect}
+          initialStadiumName={stadiumFromUrl ? decodeURIComponent(stadiumFromUrl) : null}
+        />
       </div>
 
       {selectedStadiumName && (
@@ -90,7 +109,7 @@ export default function MapPage() {
                             <span className="text-sm text-base-conten">매칭날짜 : {formatDateKo(m.date)}</span>
                             <MatchWeather date={m.date} fallback={m.weather} />
                             <span className="font-bold flex items-center gap-2 flex-wrap">
-                              팀명 : <Link href={`/team?name=${encodeURIComponent(m.teamName)}`} className="link link-hover">{m.teamName}</Link>
+                              팀명 : <Link href={`/team?name=${encodeURIComponent(m.teamName)}`} className="link">{m.teamName}</Link>
                               {m.isBlacklisted && <span className="badge badge-neutral badge-sm">블랙리스트</span>}
                             </span>
                             <span className="text-base-content text-sm">연락처: {formatContactValue(m.contact)}</span>
@@ -178,5 +197,20 @@ export default function MapPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function MapPage() {
+  return (
+    <Suspense fallback={
+      <div className="max-w-full">
+        <h1 className="text-2xl font-bold mb-1">구장 지도</h1>
+        <div className="h-[70vh] min-h-[400px] flex items-center justify-center">
+          <span className="loading loading-spinner loading-lg text-primary" />
+        </div>
+      </div>
+    }>
+      <MapPageContent />
+    </Suspense>
   );
 }

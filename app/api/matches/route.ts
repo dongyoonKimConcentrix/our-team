@@ -23,9 +23,9 @@ export async function GET(request: NextRequest) {
   if (matchIds.length === 0) return Response.json(matches ?? []);
   const { data: matchTeams } = await supabase
     .from('match_teams')
-    .select('match_id, team_id, teams ( id, name, age_range, skill_level, contacts )')
+    .select('match_id, team_id, teams ( id, name, age_range, skill_level, contacts, is_blacklisted )')
     .in('match_id', matchIds);
-  type TeamRow = { id: string; name: string; age_range: string | null; skill_level: string | null; contacts: Array<{ type?: string; value?: string }> };
+  type TeamRow = { id: string; name: string; age_range: string | null; skill_level: string | null; contacts: Array<{ type?: string; value?: string }>; is_blacklisted?: boolean };
   const teamByMatch = new Map<string, TeamRow>();
   for (const row of matchTeams ?? []) {
     const r = row as unknown as { match_id: string; teams: TeamRow | TeamRow[] | null };
