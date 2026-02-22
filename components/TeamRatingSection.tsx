@@ -41,6 +41,7 @@ export default function TeamRatingSection({ teamId, summary: initialSummary }: P
   const handleRate = async (value: number) => {
     if (!isLoggedIn) return;
     setLoading(true);
+    const prevRating = myRating;
     try {
       const res = await fetch(`/api/teams/${teamId}/rating`, {
         method: 'POST',
@@ -52,6 +53,18 @@ export default function TeamRatingSection({ teamId, summary: initialSummary }: P
         return;
       }
       setMyRating(data.rating ?? value);
+      // 총 별점 내역 즉시 반영 (낙관적 업데이트)
+      setSummary((prev) => {
+        const prevCount = prev.count;
+        const prevSum = prev.average * prevCount;
+        if (prevRating == null) {
+          const newCount = prevCount + 1;
+          const newSum = prevSum + value;
+          return { average: newSum / newCount, count: newCount };
+        }
+        const newSum = prevSum - prevRating + value;
+        return { average: newSum / prevCount, count: prevCount };
+      });
       router.refresh();
     } finally {
       setLoading(false);
