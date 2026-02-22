@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 export type TeamRatingsSummary = {
   average: number;
@@ -13,14 +13,18 @@ type Props = {
   summary: TeamRatingsSummary;
 };
 
+const OPTIMISTIC_IGNORE_MS = 2500;
+
 export default function TeamRatingSection({ teamId, summary: initialSummary }: Props) {
   const router = useRouter();
   const [summary, setSummary] = useState(initialSummary);
   const [myRating, setMyRating] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const optimisticUntilRef = useRef<number>(0);
 
   useEffect(() => {
+    if (Date.now() < optimisticUntilRef.current) return;
     setSummary(initialSummary);
   }, [initialSummary]);
 
@@ -54,16 +58,17 @@ export default function TeamRatingSection({ teamId, summary: initialSummary }: P
       }
       setMyRating(data.rating ?? value);
       // 총 별점 내역 즉시 반영 (낙관적 업데이트)
+      optimisticUntilRef.current = Date.now() + OPTIMISTIC_IGNORE_MS;
       setSummary((prev) => {
         const prevCount = prev.count;
-        const prevSum = prev.average * prevCount;
+        const prevSum = Math.round(prev.average * prevCount * 10) / 10;
         if (prevRating == null) {
           const newCount = prevCount + 1;
           const newSum = prevSum + value;
-          return { average: newSum / newCount, count: newCount };
+          return { average: Math.round((newSum / newCount) * 10) / 10, count: newCount };
         }
         const newSum = prevSum - prevRating + value;
-        return { average: newSum / prevCount, count: prevCount };
+        return { average: Math.round((newSum / prevCount) * 10) / 10, count: prevCount };
       });
       router.refresh();
     } finally {
